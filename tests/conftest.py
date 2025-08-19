@@ -28,7 +28,10 @@ class TestLLM(LLMInterface):
         **kwargs: Any,
     ) -> dict[str, Any]:
         if "sorted_items" in str(schema):
-            return {"sorted_items": ["apple", "banana", "pear"], "reasoning": "Alphabetical"}
+            return {
+                "sorted_items": ["apple", "banana", "pear"],
+                "reasoning": "Alphabetical",
+            }
         return {"filtered_items": ["apple"], "reasoning": "Contains 'a'"}
 
     def generate_with_tools(
@@ -65,3 +68,7 @@ def sample_docs(tmp_path):
 def output_dir(tmp_path):
     """Provide test output directory."""
     return tmp_path / "output"
+
+
+# Alias for backward compatibility with examples
+MockLLMProvider = TestLLM

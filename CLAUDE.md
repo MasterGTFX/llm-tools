@@ -55,7 +55,7 @@ The project follows a modular structure with working implementations:
 - Automatically creates metadata.json tracking versions
 - API matches README examples exactly
 
-### Sorter Component  
+### Sorter Component
 - **Strict mode**: Preserves all input items, only reorders
 - **Filter mode**: Returns subset matching conditions
 - Includes validation and type restoration
@@ -65,7 +65,7 @@ The project follows a modular structure with working implementations:
 
 The project uses an abstract `LLMInterface` in `llmtools.interfaces.llm` that requires:
 - `generate()` - Basic text generation
-- `generate_structured()` - JSON schema-conforming output  
+- `generate_structured()` - JSON schema-conforming output
 - `generate_with_tools()` - Function/tool calling capability
 
 Example LLM provider implementations should inherit from this interface.
@@ -98,3 +98,5 @@ See `examples/basic_usage.py` for functional demonstrations of both KnowledgeBas
 - Check code quality with tools like ruff, mypy
 - Do not mock in tests. Create just simple unit/functional tests
 - we're in active development, not clients yet - do not bother about backward compatible
+- use the local /venv
+- while logging, be clear, concise yet meaningful. use proper logging level. use getlogger with specific logger names

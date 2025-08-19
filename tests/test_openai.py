@@ -71,7 +71,6 @@ class TestOpenAIProvider:
                 provider = OpenAIProvider()
                 assert provider.api_key == "env-key"
 
-
     def test_initialization_with_base_url(self):
         """Test initialization with custom base URL."""
         from llmtools.interfaces.openai_llm import OpenAIProvider

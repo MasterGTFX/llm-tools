@@ -6,6 +6,23 @@ from typing import Any, Literal, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+class LoggingConfig(BaseModel):
+    """Configuration for logging settings."""
+
+    level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
+        "INFO", description="Logging level"
+    )
+    format: Optional[str] = Field(None, description="Custom log format string")
+    handler_type: Literal["console", "file", "both"] = Field(
+        "console", description="Where to send log messages"
+    )
+    log_file: Optional[str] = Field(
+        None, description="Log file path (when using file handler)"
+    )
+
+    model_config = ConfigDict(use_enum_values=True)
+
+
 class LLMConfig(BaseModel):
     """Configuration for LLM providers."""
 
@@ -46,6 +63,9 @@ class KnowledgeBaseConfig(BaseModel):
     max_versions: int = Field(
         10, gt=0, description="Maximum number of versions to keep"
     )
+    logging: LoggingConfig = Field(
+        default_factory=LoggingConfig, description="Logging configuration"
+    )
 
     @field_validator("output_dir")
     def validate_output_dir(cls, v: Optional[Union[str, Path]]) -> Optional[Path]:
@@ -63,6 +83,9 @@ class SorterConfig(BaseModel):
         3, ge=0, description="Maximum retries for failed operations"
     )
     validate_output: bool = Field(True, description="Whether to validate output format")
+    logging: LoggingConfig = Field(
+        default_factory=LoggingConfig, description="Logging configuration"
+    )
 
     model_config = ConfigDict(use_enum_values=True)
 
@@ -77,6 +100,9 @@ class DiffManagerConfig(BaseModel):
     ignore_whitespace: bool = Field(
         False, description="Whether to ignore whitespace changes"
     )
+    logging: LoggingConfig = Field(
+        default_factory=LoggingConfig, description="Logging configuration"
+    )
 
     model_config = ConfigDict(use_enum_values=True)
 
@@ -87,5 +113,8 @@ class ComponentConfig(BaseModel):
     debug: bool = Field(False, description="Enable debug logging")
     cache_enabled: bool = Field(True, description="Enable caching")
     cache_ttl: int = Field(3600, gt=0, description="Cache TTL in seconds")
+    logging: LoggingConfig = Field(
+        default_factory=LoggingConfig, description="Logging configuration"
+    )
 
     model_config = ConfigDict(extra="allow")

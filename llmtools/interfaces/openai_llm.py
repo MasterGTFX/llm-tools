@@ -7,6 +7,7 @@ from typing import Any, Optional, Union
 from dotenv import load_dotenv
 
 from llmtools.interfaces.llm import LLMInterface
+from llmtools.utils.logging import setup_logger
 
 try:
     from openai import OpenAI
@@ -67,6 +68,13 @@ class OpenAIProvider(LLMInterface):
             "timeout": 30,
         }
 
+        # Set up logging
+        self.logger = setup_logger(__name__)
+        self.logger.info(f"OpenAI provider initialized with model: {self.model}")
+        if self.base_url:
+            self.logger.info(f"Using custom base URL: {self.base_url}")
+        self.logger.debug(f"Configuration: {self.config}")
+
     def _build_messages(
         self,
         prompt: str,
@@ -116,6 +124,13 @@ class OpenAIProvider(LLMInterface):
         Returns:
             Generated text response from the LLM
         """
+        self.logger.info(f"Generating text response with model: {self.model}")
+        self.logger.debug(f"Prompt length: {len(prompt)} characters")
+        if system_prompt:
+            self.logger.debug(f"System prompt length: {len(system_prompt)} characters")
+        if history:
+            self.logger.debug(f"History: {len(history)} messages")
+
         messages = self._build_messages(prompt, system_prompt, history)
 
         # Merge config with kwargs
@@ -125,11 +140,26 @@ class OpenAIProvider(LLMInterface):
             **self.config,
             **kwargs,
         }
+        self.logger.debug(
+            f"Request params: {
+                {k: v for k, v in request_params.items() if k != 'messages'}
+            }"
+        )
 
         try:
             response = self.client.chat.completions.create(**request_params)
-            return response.choices[0].message.content or ""
+            content = response.choices[0].message.content or ""
+
+            # Log token usage if available
+            if hasattr(response, "usage") and response.usage:
+                self.logger.info(
+                    f"Token usage - prompt: {response.usage.prompt_tokens}, completion: {response.usage.completion_tokens}, total: {response.usage.total_tokens}"
+                )
+
+            self.logger.info(f"Generated response: {len(content)} characters")
+            return content
         except Exception as e:
+            self.logger.error(f"OpenAI API error: {e}")
             raise RuntimeError(f"OpenAI API error: {e}") from e
 
     def generate_structured(
@@ -174,15 +204,29 @@ class OpenAIProvider(LLMInterface):
         }
 
         try:
+            self.logger.info(f"Generating structured response with model: {self.model}")
+            self.logger.debug("Using JSON schema for structured output")
+
             response = self.client.chat.completions.create(**request_params)
             content = response.choices[0].message.content or "{}"
+
+            # Log token usage if available
+            if hasattr(response, "usage") and response.usage:
+                self.logger.info(
+                    f"Token usage - prompt: {response.usage.prompt_tokens}, completion: {response.usage.completion_tokens}, total: {response.usage.total_tokens}"
+                )
+
             parsed_result = json.loads(content)
             if isinstance(parsed_result, dict):
+                self.logger.info("Successfully generated structured response")
+                self.logger.debug(f"Response keys: {list(parsed_result.keys())}")
                 return parsed_result
             raise ValueError("Expected JSON object, got other type")
         except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse structured response as JSON: {e}")
             raise ValueError(f"Failed to parse structured response as JSON: {e}") from e
         except Exception as e:
+            self.logger.error(f"OpenAI API error: {e}")
             raise RuntimeError(f"OpenAI API error: {e}") from e
 
     def generate_with_tools(
@@ -217,11 +261,24 @@ class OpenAIProvider(LLMInterface):
         }
 
         try:
+            self.logger.info(f"Generating response with tools, model: {self.model}")
+            self.logger.debug(
+                f"Available tools: {[tool.get('function', {}).get('name', 'unknown') for tool in tools]}"
+            )
+
             response = self.client.chat.completions.create(**request_params)
             message = response.choices[0].message
 
+            # Log token usage if available
+            if hasattr(response, "usage") and response.usage:
+                self.logger.info(
+                    f"Token usage - prompt: {response.usage.prompt_tokens}, completion: {response.usage.completion_tokens}, total: {response.usage.total_tokens}"
+                )
+
             # Check if the model wants to call a tool
             if message.tool_calls:
+                tool_names = [tc.function.name for tc in message.tool_calls]
+                self.logger.info(f"Model requested tool calls: {tool_names}")
                 return {
                     "content": message.content,
                     "tool_calls": [
@@ -238,9 +295,13 @@ class OpenAIProvider(LLMInterface):
                 }
             else:
                 # Regular text response
-                return message.content or ""
+                self.logger.info("Model returned text response (no tool calls)")
+                content = message.content or ""
+                self.logger.debug(f"Response length: {len(content)} characters")
+                return content
 
         except Exception as e:
+            self.logger.error(f"OpenAI API error: {e}")
             raise RuntimeError(f"OpenAI API error: {e}") from e
 
     def configure(self, config: dict[str, Any]) -> None:
@@ -249,23 +310,38 @@ class OpenAIProvider(LLMInterface):
         Args:
             config: Configuration dictionary (API keys, model params, etc.)
         """
+        self.logger.info("Updating configuration")
+        config_changes = []
+
         if "api_key" in config:
             self.api_key = config["api_key"]
             # Recreate client with new API key
             self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+            config_changes.append("api_key")
 
         if "model" in config:
+            old_model = self.model
             self.model = config["model"]
+            config_changes.append(f"model: {old_model} -> {self.model}")
 
         if "base_url" in config:
+            old_url = self.base_url
             self.base_url = config["base_url"]
             # Recreate client with new base URL
             self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+            config_changes.append(f"base_url: {old_url} -> {self.base_url}")
 
         # Update other config parameters
         for key, value in config.items():
             if key in ["temperature", "max_tokens", "timeout"]:
+                old_value = self.config.get(key)
                 self.config[key] = value
+                config_changes.append(f"{key}: {old_value} -> {value}")
+
+        if config_changes:
+            self.logger.info(f"Configuration updated: {', '.join(config_changes)}")
+        else:
+            self.logger.debug("No configuration changes applied")
 
     def get_model_info(self) -> dict[str, Any]:
         """Get information about the current model.

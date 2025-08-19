@@ -5,6 +5,7 @@ from typing import Any, Literal, Optional, Union
 
 from llmtools.config import LLMConfig, SorterConfig
 from llmtools.interfaces.llm import LLMInterface
+from llmtools.utils.logging import setup_logger
 
 
 class Sorter:
@@ -55,6 +56,15 @@ class Sorter:
 
         self.llm_provider = llm_provider
 
+        # Set up logging
+        self.logger = setup_logger(
+            __name__,
+            level=self.config.logging.level,
+            format_string=self.config.logging.format,
+            handler_type=self.config.logging.handler_type,
+        )
+        self.logger.debug(f"Sorter initialized in {self.config.mode} mode")
+
     def sort(self, items: list[Any], instruction: str) -> list[Any]:
         """Sort or filter items based on the given instruction.
 
@@ -65,11 +75,19 @@ class Sorter:
         Returns:
             Sorted/filtered list based on the mode and instruction
         """
+        self.logger.info(
+            f"Starting {self.config.mode} operation with {len(items)} items: '{instruction[:50]}{'...' if len(instruction) > 50 else ''}'"
+        )
+
         if not items:
+            self.logger.info("Empty input list, returning empty result")
             return []
 
         if not self.llm_provider:
+            self.logger.error("LLM provider not configured")
             raise ValueError("LLM provider not configured. Cannot sort items.")
+
+        self.logger.debug(f"Input items: {items[:5]}{'...' if len(items) > 5 else ''}")
 
         # Create the sorting schema for structured output
         if self.config.mode == "strict":
@@ -122,6 +140,10 @@ class Sorter:
 
         for attempt in range(self.config.max_retries + 1):
             try:
+                self.logger.debug(
+                    f"Attempt {attempt + 1} of {self.config.max_retries + 1}"
+                )
+
                 # Get structured response from LLM
                 response = self.llm_provider.generate_structured(
                     prompt=prompt,
@@ -129,6 +151,7 @@ class Sorter:
                     system_prompt=system_prompt,
                     temperature=self.config.llm.temperature,
                 )
+                self.logger.debug(f"Received LLM response: {response}")
 
                 # Extract the result
                 if self.config.mode == "strict":
@@ -138,19 +161,32 @@ class Sorter:
 
                 # Validate output if enabled
                 if self.config.validate_output:
+                    self.logger.debug("Validating output")
                     self._validate_result(items, result_items, str_items)
+                    self.logger.debug("Output validation passed")
 
                 # Convert back to original types if possible
-                return self._restore_types(result_items, items)
+                final_result = self._restore_types(result_items, items)
+                self.logger.info(
+                    f"Successfully completed {self.config.mode} operation. Output: {len(final_result)} items"
+                )
+                self.logger.debug(
+                    f"Final result: {final_result[:5]}{'...' if len(final_result) > 5 else ''}"
+                )
+                return final_result
 
             except Exception as e:
+                self.logger.warning(f"Attempt {attempt + 1} failed: {e}")
                 if attempt == self.config.max_retries:
+                    self.logger.error(
+                        f"All {self.config.max_retries + 1} attempts failed"
+                    )
                     raise RuntimeError(
                         f"Failed to sort items after {self.config.max_retries + 1} attempts: {e}"
                     ) from e
-                # Continue to next attempt
 
         # Fallback - return original list
+        self.logger.warning("Returning original list as fallback")
         return items
 
     def _get_system_prompt(self) -> str:
