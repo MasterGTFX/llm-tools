@@ -28,14 +28,15 @@ classifiers = [
 ]
 
 dependencies = [
-    "pydantic>=2.0.0",
+    "pydantic",
+    "openai",
+    "python-dotenv",
 ]
 
 [project.optional-dependencies]
-openai = ["openai"]
 anthropic = ["anthropic"]
-openrouter = ["openai"]
-llm = ["openai", "anthropic"]
+openai = []
+llm = ["anthropic"]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -44,7 +45,7 @@ dev = [
     "pre-commit>=3.0.0",
     "types-requests",
 ]
-all = ["llmtools[openai,anthropic,openrouter,dev]"]
+all = ["llmtools[anthropic,openai,dev]"]
 
 [project.urls]
 Homepage = "https://github.com/yourname/llm-tools"

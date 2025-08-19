@@ -1,4 +1,4 @@
-"""Tests for OpenRouter LLM provider."""
+"""Tests for OpenAI LLM provider."""
 
 import os
 from unittest.mock import Mock, patch
@@ -9,7 +9,7 @@ from llmtools.interfaces.llm import LLMInterface
 
 
 # Test imports with and without openai dependency
-def test_openrouter_import_error():
+def test_openai_import_error():
     """Test that appropriate error is raised when OpenAI SDK is not available."""
     import sys
 
@@ -20,8 +20,8 @@ def test_openrouter_import_error():
         del sys.modules["openai"]
 
     # Also remove any cached imports
-    if "llmtools.interfaces.openrouter_llm" in sys.modules:
-        del sys.modules["llmtools.interfaces.openrouter_llm"]
+    if "llmtools.interfaces.openai_llm" in sys.modules:
+        del sys.modules["llmtools.interfaces.openai_llm"]
 
     # Mock the import to fail
     with patch.dict("sys.modules", {"openai": None}):
@@ -29,8 +29,8 @@ def test_openrouter_import_error():
             import importlib
 
             importlib.invalidate_caches()
-            from llmtools.interfaces.openrouter_llm import (
-                OpenRouterProvider,  # noqa: F401
+            from llmtools.interfaces.openai_llm import (
+                OpenAIProvider,  # noqa: F401
             )
 
     # Restore original state
@@ -42,44 +42,62 @@ def test_openrouter_import_error():
     not pytest.importorskip("openai", minversion="1.0.0"),
     reason="OpenAI SDK not available",
 )
-class TestOpenRouterProvider:
-    """Test OpenRouter provider functionality."""
+class TestOpenAIProvider:
+    """Test OpenAI provider functionality."""
 
     def setup_method(self):
         """Set up test fixtures."""
-        from llmtools.interfaces.openrouter_llm import OpenRouterProvider
+        from llmtools.interfaces.openai_llm import OpenAIProvider
 
         # Mock OpenAI client
         self.mock_client = Mock()
 
-        with patch("llmtools.interfaces.openrouter_llm.OpenAI") as mock_openai:
+        with patch("llmtools.interfaces.openai_llm.OpenAI") as mock_openai:
             mock_openai.return_value = self.mock_client
-            self.provider = OpenRouterProvider(
-                api_key="test-key", model="openai/gpt-4o"
-            )
+            self.provider = OpenAIProvider(api_key="test-key", model="gpt-4o")
 
     def test_initialization(self):
         """Test provider initialization."""
         assert self.provider.api_key == "test-key"
-        assert self.provider.model == "openai/gpt-4o"
-        assert self.provider.base_url == "https://openrouter.ai/api/v1"
+        assert self.provider.model == "gpt-4o"
+        assert self.provider.base_url is None
 
     def test_initialization_with_env_var(self):
         """Test initialization with environment variable."""
-        from llmtools.interfaces.openrouter_llm import OpenRouterProvider
+        from llmtools.interfaces.openai_llm import OpenAIProvider
 
-        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "env-key"}):
-            with patch("llmtools.interfaces.openrouter_llm.OpenAI"):
-                provider = OpenRouterProvider()
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "env-key"}):
+            with patch("llmtools.interfaces.openai_llm.OpenAI"):
+                provider = OpenAIProvider()
                 assert provider.api_key == "env-key"
+
+
+    def test_initialization_with_base_url(self):
+        """Test initialization with custom base URL."""
+        from llmtools.interfaces.openai_llm import OpenAIProvider
+
+        with patch("llmtools.interfaces.openai_llm.OpenAI") as mock_openai:
+            provider = OpenAIProvider(
+                api_key="test-key", base_url="https://openrouter.ai/api/v1"
+            )
+            assert provider.base_url == "https://openrouter.ai/api/v1"
+
+            # Verify OpenAI client was called with base_url
+            mock_openai.assert_called_once_with(
+                api_key="test-key", base_url="https://openrouter.ai/api/v1"
+            )
 
     def test_initialization_no_api_key(self):
         """Test that initialization fails without API key."""
-        from llmtools.interfaces.openrouter_llm import OpenRouterProvider
+        from llmtools.interfaces.openai_llm import OpenAIProvider
 
         with patch.dict(os.environ, {}, clear=True):
-            with pytest.raises(ValueError, match="OpenRouter API key is required"):
-                OpenRouterProvider()
+            with patch(
+                "llmtools.interfaces.openai_llm.load_dotenv"
+            ):  # Mock load_dotenv
+                with patch("llmtools.interfaces.openai_llm.OpenAI"):
+                    with pytest.raises(ValueError, match="OpenAI API key is required"):
+                        OpenAIProvider()
 
     def test_build_messages(self):
         """Test message building functionality."""
@@ -120,7 +138,7 @@ class TestOpenRouterProvider:
         # Verify API call
         self.mock_client.chat.completions.create.assert_called_once()
         call_args = self.mock_client.chat.completions.create.call_args[1]
-        assert call_args["model"] == "openai/gpt-4o"
+        assert call_args["model"] == "gpt-4o"
         assert call_args["messages"] == [{"role": "user", "content": "Say hello"}]
 
     def test_generate_with_history(self):
@@ -147,7 +165,7 @@ class TestOpenRouterProvider:
         """Test error handling in generate method."""
         self.mock_client.chat.completions.create.side_effect = Exception("API Error")
 
-        with pytest.raises(RuntimeError, match="OpenRouter API error"):
+        with pytest.raises(RuntimeError, match="OpenAI API error"):
             self.provider.generate("Hello")
 
     def test_generate_structured(self):
@@ -224,14 +242,14 @@ class TestOpenRouterProvider:
     def test_configure(self):
         """Test provider configuration."""
         config = {
-            "model": "anthropic/claude-3-haiku",
+            "model": "gpt-4",
             "temperature": 0.5,
             "max_tokens": 100,
         }
 
         self.provider.configure(config)
 
-        assert self.provider.model == "anthropic/claude-3-haiku"
+        assert self.provider.model == "gpt-4"
         assert self.provider.config["temperature"] == 0.5
         assert self.provider.config["max_tokens"] == 100
 
@@ -239,14 +257,14 @@ class TestOpenRouterProvider:
         """Test model info retrieval."""
         info = self.provider.get_model_info()
 
-        assert info["provider"] == "OpenRouter"
-        assert info["model"] == "openai/gpt-4o"
+        assert info["provider"] == "OpenAI"
+        assert info["model"] == "gpt-4o"
         assert info["supports_structured"] is True
         assert info["supports_tools"] is True
         assert info["supports_history"] is True
 
     def test_implements_interface(self):
-        """Test that OpenRouterProvider implements LLMInterface."""
+        """Test that OpenAIProvider implements LLMInterface."""
         assert isinstance(self.provider, LLMInterface)
 
     def test_interface_methods_exist(self):

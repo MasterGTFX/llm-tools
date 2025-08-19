@@ -91,4 +91,10 @@ Example LLM provider implementations should inherit from this interface.
 ## Working Examples
 
 See `examples/basic_usage.py` for functional demonstrations of both KnowledgeBase and Sorter components using mock LLM providers.
+
+## Developer notes
 - make sure that always latest possible version of libraries are installed
+- examples should be simple, basic, straightforward to show up usage to User - do not cover all scenarios etc
+- Check code quality with tools like ruff, mypy
+- Do not mock in tests. Create just simple unit/functional tests
+- we're in active development, not clients yet - do not bother about backward compatible

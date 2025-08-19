@@ -1,12 +1,6 @@
 """Abstract interfaces for LLM providers and other components."""
 
 from llmtools.interfaces.llm import LLMInterface
+from llmtools.interfaces.openai_llm import OpenAIProvider
 
-# Import OpenRouter provider with optional dependency handling
-try:
-    from llmtools.interfaces.openrouter_llm import OpenRouterProvider
-
-    __all__ = ["LLMInterface", "OpenRouterProvider"]
-except ImportError:
-    # OpenAI SDK not installed
-    __all__ = ["LLMInterface"]
+__all__ = ["LLMInterface", "OpenAIProvider"]

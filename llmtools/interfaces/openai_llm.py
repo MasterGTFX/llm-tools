@@ -1,8 +1,10 @@
-"""OpenRouter LLM provider implementation using OpenAI SDK."""
+"""OpenAI LLM provider implementation using OpenAI SDK."""
 
 import json
 import os
 from typing import Any, Optional, Union
+
+from dotenv import load_dotenv
 
 from llmtools.interfaces.llm import LLMInterface
 
@@ -10,46 +12,53 @@ try:
     from openai import OpenAI
 except ImportError as e:
     raise ImportError(
-        "OpenAI SDK is required for OpenRouter provider. "
-        "Install with: pip install 'llmtools[openrouter]' or pip install openai"
+        "OpenAI SDK is required for OpenAI provider. "
+        "Install with: pip install 'llmtools[openai]' or pip install openai"
     ) from e
 
 
-class OpenRouterProvider(LLMInterface):
-    """OpenRouter LLM provider using OpenAI SDK with OpenRouter API."""
+class OpenAIProvider(LLMInterface):
+    """OpenAI LLM provider using OpenAI SDK with configurable base URL."""
 
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "openai/gpt-4o",
-        base_url: str = "https://openrouter.ai/api/v1",
+        model: str = "gpt-5-nano",
+        base_url: Optional[str] = None,
         **client_kwargs: Any,
     ):
-        """Initialize OpenRouter provider.
+        """Initialize OpenAI provider.
 
         Args:
-            api_key: OpenRouter API key. If not provided, will try to load from
-                    OPENROUTER_API_KEY environment variable
-            model: Model to use (default: openai/gpt-4o)
-            base_url: OpenRouter API base URL
+            api_key: OpenAI API key. If not provided, will try to load from
+                    OPENAI_API_KEY environment variable
+            model: Model to use (default: gpt-5-nano)
+            base_url: Custom base URL (e.g., for OpenRouter). If not provided,
+                     uses OpenAI's default endpoint
             **client_kwargs: Additional arguments to pass to OpenAI client
         """
-        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+        # Load environment variables from .env file
+        load_dotenv()
+
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError(
-                "OpenRouter API key is required. Set OPENROUTER_API_KEY environment "
+                "OpenAI API key is required. Set OPENAI_API_KEY environment "
                 "variable or pass api_key parameter"
             )
 
         self.model = model
         self.base_url = base_url
 
-        # Initialize OpenAI client with OpenRouter settings
-        self.client = OpenAI(
-            api_key=self.api_key,
-            base_url=self.base_url,
+        # Initialize OpenAI client with optional custom base URL
+        client_params = {
+            "api_key": self.api_key,
             **client_kwargs,
-        )
+        }
+        if self.base_url:
+            client_params["base_url"] = self.base_url
+
+        self.client = OpenAI(**client_params)
 
         # Default configuration
         self.config = {
@@ -121,7 +130,7 @@ class OpenRouterProvider(LLMInterface):
             response = self.client.chat.completions.create(**request_params)
             return response.choices[0].message.content or ""
         except Exception as e:
-            raise RuntimeError(f"OpenRouter API error: {e}") from e
+            raise RuntimeError(f"OpenAI API error: {e}") from e
 
     def generate_structured(
         self,
@@ -145,7 +154,7 @@ class OpenRouterProvider(LLMInterface):
         """
         messages = self._build_messages(prompt, system_prompt, history)
 
-        # Configure structured output using OpenRouter's format
+        # Configure structured output using OpenAI's format
         response_format = {
             "type": "json_schema",
             "json_schema": {
@@ -174,7 +183,7 @@ class OpenRouterProvider(LLMInterface):
         except json.JSONDecodeError as e:
             raise ValueError(f"Failed to parse structured response as JSON: {e}") from e
         except Exception as e:
-            raise RuntimeError(f"OpenRouter API error: {e}") from e
+            raise RuntimeError(f"OpenAI API error: {e}") from e
 
     def generate_with_tools(
         self,
@@ -232,7 +241,7 @@ class OpenRouterProvider(LLMInterface):
                 return message.content or ""
 
         except Exception as e:
-            raise RuntimeError(f"OpenRouter API error: {e}") from e
+            raise RuntimeError(f"OpenAI API error: {e}") from e
 
     def configure(self, config: dict[str, Any]) -> None:
         """Configure the LLM provider with settings.
@@ -265,7 +274,7 @@ class OpenRouterProvider(LLMInterface):
             Dictionary with model name, version, capabilities, etc.
         """
         return {
-            "provider": "OpenRouter",
+            "provider": "OpenAI",
             "model": self.model,
             "base_url": self.base_url,
             "supports_structured": True,
