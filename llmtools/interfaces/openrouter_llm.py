@@ -272,4 +272,3 @@ class OpenRouterProvider(LLMInterface):
             "supports_tools": True,
             "supports_history": True,
         }
-

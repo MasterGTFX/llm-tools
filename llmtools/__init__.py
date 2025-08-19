@@ -15,6 +15,7 @@ from llmtools.sorter import Sorter
 # Import OpenRouter provider with optional dependency handling
 try:
     from llmtools.interfaces import OpenRouterProvider
+
     __all__ = ["KnowledgeBase", "Sorter", "LLMInterface", "OpenRouterProvider"]
 except ImportError:
     # OpenAI SDK not installed

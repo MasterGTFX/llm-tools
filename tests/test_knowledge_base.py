@@ -1,6 +1,5 @@
 """Tests for the KnowledgeBase component."""
 
-
 import pytest
 
 from llmtools.knowledge_base import KnowledgeBase

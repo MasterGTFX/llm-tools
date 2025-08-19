@@ -1,7 +1,7 @@
 """Sorter implementation for LLM-based list sorting and filtering."""
 
 import json
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from llmtools.config import LLMConfig, SorterConfig
 from llmtools.interfaces.llm import LLMInterface
@@ -17,7 +17,7 @@ class Sorter:
 
     def __init__(
         self,
-        mode: str = "strict",
+        mode: Literal["strict", "filter"] = "strict",
         config: Optional[Union[dict[str, Any], SorterConfig]] = None,
         llm_provider: Optional[LLMInterface] = None,
     ):
@@ -32,14 +32,26 @@ class Sorter:
         if isinstance(config, dict):
             # Convert dict config to proper config objects
             llm_config = LLMConfig(**config)
-            self.config = SorterConfig(llm=llm_config, mode=mode)
+            self.config = SorterConfig(
+                llm=llm_config, mode=mode, max_retries=3, validate_output=True
+            )
         elif isinstance(config, SorterConfig):
             self.config = config
             self.config.mode = mode  # Override mode if provided
         else:
             # Default config
-            default_llm = LLMConfig(provider="openai")
-            self.config = SorterConfig(llm=default_llm, mode=mode)
+            default_llm = LLMConfig(
+                provider="openai",
+                model=None,
+                api_key=None,
+                base_url=None,
+                temperature=0.7,
+                max_tokens=None,
+                timeout=30,
+            )
+            self.config = SorterConfig(
+                llm=default_llm, mode=mode, max_retries=3, validate_output=True
+            )
 
         self.llm_provider = llm_provider
 

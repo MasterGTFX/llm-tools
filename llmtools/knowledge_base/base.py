@@ -37,13 +37,37 @@ class KnowledgeBase:
         if isinstance(config, dict):
             # Convert dict config to proper config objects
             llm_config = LLMConfig(**config)
-            self.config = KnowledgeBaseConfig(llm=llm_config)
+            self.config = KnowledgeBaseConfig(
+                llm=llm_config,
+                instruction="Create a comprehensive knowledge base containing all useful information",
+                output_dir=None,
+                history_dir=".history",
+                chunk_size=4000,
+                chunk_overlap=200,
+                max_versions=10,
+            )
         elif isinstance(config, KnowledgeBaseConfig):
             self.config = config
         else:
             # Default config
-            default_llm = LLMConfig(provider="openai")
-            self.config = KnowledgeBaseConfig(llm=default_llm)
+            default_llm = LLMConfig(
+                provider="openai",
+                model=None,
+                api_key=None,
+                base_url=None,
+                temperature=0.7,
+                max_tokens=None,
+                timeout=30,
+            )
+            self.config = KnowledgeBaseConfig(
+                llm=default_llm,
+                instruction="Create a comprehensive knowledge base containing all useful information",
+                output_dir=None,
+                history_dir=".history",
+                chunk_size=4000,
+                chunk_overlap=200,
+                max_versions=10,
+            )
 
         # Override specific fields if provided
         if instruction:
@@ -219,7 +243,9 @@ class KnowledgeBase:
         """
         metadata_file = self.history_dir / "metadata.json"
         if metadata_file.exists():
-            return json.loads(metadata_file.read_text(encoding="utf-8"))
+            content = metadata_file.read_text(encoding="utf-8")
+            metadata: list[dict[str, Any]] = json.loads(content)
+            return metadata
         return []
 
     def _save_metadata(self) -> None:

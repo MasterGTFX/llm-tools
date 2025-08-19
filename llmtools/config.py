@@ -3,15 +3,13 @@
 from pathlib import Path
 from typing import Any, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class LLMConfig(BaseModel):
     """Configuration for LLM providers."""
 
-    provider: str = Field(
-        ..., description="LLM provider name (e.g., 'openai', 'anthropic')"
-    )
+    provider: str
     model: Optional[str] = Field(None, description="Specific model name")
     api_key: Optional[str] = Field(None, description="API key for the provider")
     base_url: Optional[str] = Field(None, description="Custom base URL for API")
@@ -24,14 +22,13 @@ class LLMConfig(BaseModel):
         default_factory=dict, description="Provider-specific parameters"
     )
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class KnowledgeBaseConfig(BaseModel):
     """Configuration for KnowledgeBase operations."""
 
-    llm: LLMConfig = Field(..., description="LLM configuration")
+    llm: LLMConfig
     instruction: str = Field(
         "Create a comprehensive knowledge base containing all useful information",
         description="Instruction for knowledge base creation",
@@ -50,7 +47,7 @@ class KnowledgeBaseConfig(BaseModel):
         10, gt=0, description="Maximum number of versions to keep"
     )
 
-    @validator("output_dir")
+    @field_validator("output_dir")
     def validate_output_dir(cls, v: Optional[Union[str, Path]]) -> Optional[Path]:
         if v is None:
             return None
@@ -60,15 +57,14 @@ class KnowledgeBaseConfig(BaseModel):
 class SorterConfig(BaseModel):
     """Configuration for Sorter operations."""
 
-    llm: LLMConfig = Field(..., description="LLM configuration")
+    llm: LLMConfig
     mode: Literal["strict", "filter"] = Field("strict", description="Sorting mode")
     max_retries: int = Field(
         3, ge=0, description="Maximum retries for failed operations"
     )
     validate_output: bool = Field(True, description="Whether to validate output format")
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class DiffManagerConfig(BaseModel):
@@ -82,8 +78,7 @@ class DiffManagerConfig(BaseModel):
         False, description="Whether to ignore whitespace changes"
     )
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class ComponentConfig(BaseModel):
@@ -93,5 +88,4 @@ class ComponentConfig(BaseModel):
     cache_enabled: bool = Field(True, description="Enable caching")
     cache_ttl: int = Field(3600, gt=0, description="Cache TTL in seconds")
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")

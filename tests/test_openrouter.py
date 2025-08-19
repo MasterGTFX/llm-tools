@@ -12,6 +12,7 @@ from llmtools.interfaces.llm import LLMInterface
 def test_openrouter_import_error():
     """Test that appropriate error is raised when OpenAI SDK is not available."""
     import sys
+
     original_openai = sys.modules.get("openai")
 
     # Remove openai from sys.modules temporarily
@@ -26,8 +27,11 @@ def test_openrouter_import_error():
     with patch.dict("sys.modules", {"openai": None}):
         with pytest.raises(ImportError, match="OpenAI SDK is required"):
             import importlib
+
             importlib.invalidate_caches()
-            from llmtools.interfaces.openrouter_llm import OpenRouterProvider
+            from llmtools.interfaces.openrouter_llm import (
+                OpenRouterProvider,  # noqa: F401
+            )
 
     # Restore original state
     if original_openai is not None:
@@ -36,7 +40,7 @@ def test_openrouter_import_error():
 
 @pytest.mark.skipif(
     not pytest.importorskip("openai", minversion="1.0.0"),
-    reason="OpenAI SDK not available"
+    reason="OpenAI SDK not available",
 )
 class TestOpenRouterProvider:
     """Test OpenRouter provider functionality."""
@@ -51,8 +55,7 @@ class TestOpenRouterProvider:
         with patch("llmtools.interfaces.openrouter_llm.OpenAI") as mock_openai:
             mock_openai.return_value = self.mock_client
             self.provider = OpenRouterProvider(
-                api_key="test-key",
-                model="openai/gpt-4o"
+                api_key="test-key", model="openai/gpt-4o"
             )
 
     def test_initialization(self):
@@ -83,14 +86,17 @@ class TestOpenRouterProvider:
         messages = self.provider._build_messages(
             prompt="Hello",
             system_prompt="You are a helpful assistant",
-            history=[{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "Hello!"}]
+            history=[
+                {"role": "user", "content": "Hi"},
+                {"role": "assistant", "content": "Hello!"},
+            ],
         )
 
         expected = [
             {"role": "system", "content": "You are a helpful assistant"},
             {"role": "user", "content": "Hi"},
             {"role": "assistant", "content": "Hello!"},
-            {"role": "user", "content": "Hello"}
+            {"role": "user", "content": "Hello"},
         ]
         assert messages == expected
 
@@ -133,7 +139,7 @@ class TestOpenRouterProvider:
         call_args = self.mock_client.chat.completions.create.call_args[1]
         expected_messages = [
             {"role": "user", "content": "Hi"},
-            {"role": "user", "content": "Hello"}
+            {"role": "user", "content": "Hello"},
         ]
         assert call_args["messages"] == expected_messages
 
@@ -154,10 +160,7 @@ class TestOpenRouterProvider:
 
         schema = {
             "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "age": {"type": "number"}
-            }
+            "properties": {"name": {"type": "string"}, "age": {"type": "number"}},
         }
 
         result = self.provider.generate_structured("Generate a person", schema)
@@ -223,7 +226,7 @@ class TestOpenRouterProvider:
         config = {
             "model": "anthropic/claude-3-haiku",
             "temperature": 0.5,
-            "max_tokens": 100
+            "max_tokens": 100,
         }
 
         self.provider.configure(config)
@@ -253,4 +256,3 @@ class TestOpenRouterProvider:
         assert hasattr(self.provider, "generate_with_tools")
         assert hasattr(self.provider, "configure")
         assert hasattr(self.provider, "get_model_info")
-

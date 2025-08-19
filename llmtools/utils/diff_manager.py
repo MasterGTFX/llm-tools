@@ -16,7 +16,9 @@ class DiffManager:
         Args:
             config: Configuration for diff operations
         """
-        self.config = config or DiffManagerConfig()
+        self.config = config or DiffManagerConfig(
+            diff_format="unified", context_lines=3, ignore_whitespace=False
+        )
 
     def create_diff(
         self,
