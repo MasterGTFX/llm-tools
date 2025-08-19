@@ -1,6 +1,6 @@
 """Pytest configuration and fixtures for llmtools tests."""
 
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 import pytest
 
@@ -11,7 +11,7 @@ class MockLLMProvider(LLMInterface):
     """Mock LLM provider for testing."""
 
     def __init__(self):
-        self.call_history: List[Dict[str, Any]] = []
+        self.call_history: list[dict[str, Any]] = []
 
     def generate(
         self,
@@ -40,10 +40,10 @@ class MockLLMProvider(LLMInterface):
     def generate_structured(
         self,
         prompt: str,
-        schema: Dict[str, Any],
+        schema: dict[str, Any],
         system_prompt: str = None,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Mock structured generation."""
         self.call_history.append(
             {
@@ -74,10 +74,10 @@ class MockLLMProvider(LLMInterface):
     def generate_with_tools(
         self,
         prompt: str,
-        tools: List[Dict[str, Any]],
+        tools: list[dict[str, Any]],
         system_prompt: str = None,
         **kwargs: Any,
-    ) -> Union[str, Dict[str, Any]]:
+    ) -> Union[str, dict[str, Any]]:
         """Mock tool calling."""
         self.call_history.append(
             {
@@ -89,6 +89,10 @@ class MockLLMProvider(LLMInterface):
             }
         )
         return "Mock tool response"
+
+    def configure(self, config: dict[str, Any]) -> None:
+        """Mock configure method."""
+        pass
 
 
 @pytest.fixture

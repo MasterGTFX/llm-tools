@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from llmtools.config import KnowledgeBaseConfig, LLMConfig
 from llmtools.interfaces.llm import LLMInterface
@@ -18,7 +18,7 @@ class KnowledgeBase:
 
     def __init__(
         self,
-        config: Optional[Union[Dict[str, Any], KnowledgeBaseConfig]] = None,
+        config: Optional[Union[dict[str, Any], KnowledgeBaseConfig]] = None,
         instruction: Optional[str] = None,
         output_dir: Optional[Union[str, Path]] = None,
         init: Optional[str] = None,
@@ -55,9 +55,9 @@ class KnowledgeBase:
         self.diff_manager = DiffManager()
 
         # Document storage
-        self.documents: List[str] = []
+        self.documents: list[str] = []
         self.initial_kb = init
-        self.versions: List[str] = []
+        self.versions: list[str] = []
 
         # Set up output directory
         if self.config.output_dir:
@@ -69,7 +69,7 @@ class KnowledgeBase:
 
         self.history_dir.mkdir(parents=True, exist_ok=True)
 
-    def add_documents(self, document_paths: List[Union[str, Path]]) -> None:
+    def add_documents(self, document_paths: list[Union[str, Path]]) -> None:
         """Add documents to be processed into the knowledge base.
 
         Args:
@@ -91,7 +91,7 @@ class KnowledgeBase:
         """
         self.documents.append(content)
 
-    def process(self) -> List[str]:
+    def process(self) -> list[str]:
         """Process documents and return list of versions ([-1] is the latest).
 
         Returns:
@@ -113,21 +113,21 @@ class KnowledgeBase:
             prompt = f"""
             Initial knowledge base:
             {self.initial_kb}
-            
+
             New documents to integrate:
             {combined_content}
-            
+
             Instructions: {self.config.instruction}
-            
+
             Please create an updated knowledge base that integrates the new information.
             """
         else:
             prompt = f"""
             Documents to process:
             {combined_content}
-            
+
             Instructions: {self.config.instruction}
-            
+
             Please create a comprehensive knowledge base from these documents.
             """
 
@@ -196,9 +196,9 @@ class KnowledgeBase:
         prompt = f"""
         Knowledge Base:
         {latest_kb}
-        
+
         Question: {question}
-        
+
         Please provide a comprehensive answer based on the knowledge base above.
         """
 
@@ -211,7 +211,7 @@ class KnowledgeBase:
         except Exception as e:
             raise RuntimeError(f"Failed to query knowledge base: {e}") from e
 
-    def get_version_history(self) -> List[Dict[str, Any]]:
+    def get_version_history(self) -> list[dict[str, Any]]:
         """Get metadata about all versions.
 
         Returns:

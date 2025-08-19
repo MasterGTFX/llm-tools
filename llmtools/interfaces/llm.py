@@ -1,7 +1,7 @@
 """Abstract LLM interface defining the contract for LLM providers."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 
 class LLMInterface(ABC):
@@ -34,10 +34,10 @@ class LLMInterface(ABC):
     def generate_structured(
         self,
         prompt: str,
-        schema: Dict[str, Any],
+        schema: dict[str, Any],
         system_prompt: Optional[str] = None,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate structured output conforming to a JSON schema.
 
         Args:
@@ -55,10 +55,10 @@ class LLMInterface(ABC):
     def generate_with_tools(
         self,
         prompt: str,
-        tools: List[Dict[str, Any]],
+        tools: list[dict[str, Any]],
         system_prompt: Optional[str] = None,
         **kwargs: Any,
-    ) -> Union[str, Dict[str, Any]]:
+    ) -> Union[str, dict[str, Any]]:
         """Generate response with access to function/tool calling.
 
         Args:
@@ -72,7 +72,8 @@ class LLMInterface(ABC):
         """
         pass
 
-    def configure(self, config: Dict[str, Any]) -> None:
+    @abstractmethod
+    def configure(self, config: dict[str, Any]) -> None:
         """Configure the LLM provider with settings.
 
         Args:
@@ -80,7 +81,7 @@ class LLMInterface(ABC):
         """
         pass
 
-    def get_model_info(self) -> Dict[str, Any]:
+    def get_model_info(self) -> dict[str, Any]:
         """Get information about the current model.
 
         Returns:

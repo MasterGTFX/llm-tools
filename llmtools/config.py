@@ -1,7 +1,7 @@
 """Pydantic configuration models for llmtools components."""
 
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, validator
 
@@ -20,7 +20,7 @@ class LLMConfig(BaseModel):
         None, gt=0, description="Maximum tokens to generate"
     )
     timeout: int = Field(30, gt=0, description="Request timeout in seconds")
-    extra_params: Dict[str, Any] = Field(
+    extra_params: dict[str, Any] = Field(
         default_factory=dict, description="Provider-specific parameters"
     )
 

@@ -1,7 +1,7 @@
 """Sorter implementation for LLM-based list sorting and filtering."""
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from llmtools.config import LLMConfig, SorterConfig
 from llmtools.interfaces.llm import LLMInterface
@@ -18,7 +18,7 @@ class Sorter:
     def __init__(
         self,
         mode: str = "strict",
-        config: Optional[Union[Dict[str, Any], SorterConfig]] = None,
+        config: Optional[Union[dict[str, Any], SorterConfig]] = None,
         llm_provider: Optional[LLMInterface] = None,
     ):
         """Initialize Sorter.
@@ -43,7 +43,7 @@ class Sorter:
 
         self.llm_provider = llm_provider
 
-    def sort(self, items: List[Any], instruction: str) -> List[Any]:
+    def sort(self, items: list[Any], instruction: str) -> list[Any]:
         """Sort or filter items based on the given instruction.
 
         Args:
@@ -101,9 +101,9 @@ class Sorter:
         prompt = f"""
         Items to process:
         {items_json}
-        
+
         Instruction: {instruction}
-        
+
         Mode: {self.config.mode}
         {"Requirement: Return ALL items in the new order - no items should be missing." if self.config.mode == "strict" else "Requirement: Return only items that satisfy the criteria."}
         """
@@ -159,7 +159,7 @@ class Sorter:
             )
 
     def _validate_result(
-        self, original_items: List[Any], result_items: List[str], str_items: List[str]
+        self, original_items: list[Any], result_items: list[str], str_items: list[str]
     ) -> None:
         """Validate the sorting/filtering result.
 
@@ -196,8 +196,8 @@ class Sorter:
                 )
 
     def _restore_types(
-        self, str_result: List[str], original_items: List[Any]
-    ) -> List[Any]:
+        self, str_result: list[str], original_items: list[Any]
+    ) -> list[Any]:
         """Attempt to restore original types from string results.
 
         Args:
