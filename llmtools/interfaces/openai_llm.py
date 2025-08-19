@@ -4,13 +4,13 @@ import json
 import os
 from typing import Any, Optional, Union
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # type: ignore[import-not-found]
 
 from llmtools.interfaces.llm import LLMInterface
 from llmtools.utils.logging import setup_logger
 
 try:
-    from openai import OpenAI
+    from openai import OpenAI  # type: ignore[import-not-found]
 except ImportError as e:
     raise ImportError(
         "OpenAI SDK is required for OpenAI provider. "

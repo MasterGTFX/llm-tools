@@ -6,6 +6,11 @@ from typing import Any, Literal, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+def _default_logging_config() -> "LoggingConfig":
+    """Factory function for default LoggingConfig."""
+    return LoggingConfig()  # type: ignore[call-arg]
+
+
 class LoggingConfig(BaseModel):
     """Configuration for logging settings."""
 
@@ -64,7 +69,7 @@ class KnowledgeBaseConfig(BaseModel):
         10, gt=0, description="Maximum number of versions to keep"
     )
     logging: LoggingConfig = Field(
-        default_factory=LoggingConfig, description="Logging configuration"
+        default_factory=_default_logging_config, description="Logging configuration"
     )
 
     @field_validator("output_dir")
@@ -84,7 +89,7 @@ class SorterConfig(BaseModel):
     )
     validate_output: bool = Field(True, description="Whether to validate output format")
     logging: LoggingConfig = Field(
-        default_factory=LoggingConfig, description="Logging configuration"
+        default_factory=_default_logging_config, description="Logging configuration"
     )
 
     model_config = ConfigDict(use_enum_values=True)
@@ -101,7 +106,7 @@ class DiffManagerConfig(BaseModel):
         False, description="Whether to ignore whitespace changes"
     )
     logging: LoggingConfig = Field(
-        default_factory=LoggingConfig, description="Logging configuration"
+        default_factory=_default_logging_config, description="Logging configuration"
     )
 
     model_config = ConfigDict(use_enum_values=True)
@@ -114,7 +119,7 @@ class ComponentConfig(BaseModel):
     cache_enabled: bool = Field(True, description="Enable caching")
     cache_ttl: int = Field(3600, gt=0, description="Cache TTL in seconds")
     logging: LoggingConfig = Field(
-        default_factory=LoggingConfig, description="Logging configuration"
+        default_factory=_default_logging_config, description="Logging configuration"
     )
 
     model_config = ConfigDict(extra="allow")
