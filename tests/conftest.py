@@ -17,6 +17,7 @@ class MockLLMProvider(LLMInterface):
         self,
         prompt: str,
         system_prompt: str = None,
+        history: list[dict[str, str]] = None,
         **kwargs: Any,
     ) -> str:
         """Mock generate method that returns predictable responses."""
@@ -25,6 +26,7 @@ class MockLLMProvider(LLMInterface):
                 "method": "generate",
                 "prompt": prompt,
                 "system_prompt": system_prompt,
+                "history": history,
                 "kwargs": kwargs,
             }
         )
@@ -42,6 +44,7 @@ class MockLLMProvider(LLMInterface):
         prompt: str,
         schema: dict[str, Any],
         system_prompt: str = None,
+        history: list[dict[str, str]] = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Mock structured generation."""
@@ -51,6 +54,7 @@ class MockLLMProvider(LLMInterface):
                 "prompt": prompt,
                 "schema": schema,
                 "system_prompt": system_prompt,
+                "history": history,
                 "kwargs": kwargs,
             }
         )
@@ -76,6 +80,7 @@ class MockLLMProvider(LLMInterface):
         prompt: str,
         tools: list[dict[str, Any]],
         system_prompt: str = None,
+        history: list[dict[str, str]] = None,
         **kwargs: Any,
     ) -> Union[str, dict[str, Any]]:
         """Mock tool calling."""
@@ -85,6 +90,7 @@ class MockLLMProvider(LLMInterface):
                 "prompt": prompt,
                 "tools": tools,
                 "system_prompt": system_prompt,
+                "history": history,
                 "kwargs": kwargs,
             }
         )

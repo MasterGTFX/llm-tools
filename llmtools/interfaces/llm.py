@@ -16,6 +16,7 @@ class LLMInterface(ABC):
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
+        history: Optional[list[dict[str, str]]] = None,
         **kwargs: Any,
     ) -> str:
         """Generate a text response from the LLM.
@@ -23,6 +24,7 @@ class LLMInterface(ABC):
         Args:
             prompt: The user prompt/input text
             system_prompt: Optional system prompt to guide behavior
+            history: Optional conversation history as list of {"role": str, "content": str}
             **kwargs: Additional provider-specific parameters
 
         Returns:
@@ -36,6 +38,7 @@ class LLMInterface(ABC):
         prompt: str,
         schema: dict[str, Any],
         system_prompt: Optional[str] = None,
+        history: Optional[list[dict[str, str]]] = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Generate structured output conforming to a JSON schema.
@@ -44,6 +47,7 @@ class LLMInterface(ABC):
             prompt: The user prompt/input text
             schema: JSON schema the response must conform to
             system_prompt: Optional system prompt to guide behavior
+            history: Optional conversation history as list of {"role": str, "content": str}
             **kwargs: Additional provider-specific parameters
 
         Returns:
@@ -57,6 +61,7 @@ class LLMInterface(ABC):
         prompt: str,
         tools: list[dict[str, Any]],
         system_prompt: Optional[str] = None,
+        history: Optional[list[dict[str, str]]] = None,
         **kwargs: Any,
     ) -> Union[str, dict[str, Any]]:
         """Generate response with access to function/tool calling.
@@ -65,6 +70,7 @@ class LLMInterface(ABC):
             prompt: The user prompt/input text
             tools: List of available tools/functions with their schemas
             system_prompt: Optional system prompt to guide behavior
+            history: Optional conversation history as list of {"role": str, "content": str}
             **kwargs: Additional provider-specific parameters
 
         Returns:

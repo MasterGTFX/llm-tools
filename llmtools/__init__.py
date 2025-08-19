@@ -8,8 +8,16 @@ This package provides reusable building blocks for working with LLMs:
 - Utils: Shared utilities for diff management, chunking, etc.
 """
 
+from llmtools.interfaces import LLMInterface
 from llmtools.knowledge_base import KnowledgeBase
 from llmtools.sorter import Sorter
 
+# Import OpenRouter provider with optional dependency handling
+try:
+    from llmtools.interfaces import OpenRouterProvider
+    __all__ = ["KnowledgeBase", "Sorter", "LLMInterface", "OpenRouterProvider"]
+except ImportError:
+    # OpenAI SDK not installed
+    __all__ = ["KnowledgeBase", "Sorter", "LLMInterface"]
+
 __version__ = "0.1.0"
-__all__ = ["KnowledgeBase", "Sorter"]

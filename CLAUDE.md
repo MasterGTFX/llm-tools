@@ -91,3 +91,4 @@ Example LLM provider implementations should inherit from this interface.
 ## Working Examples
 
 See `examples/basic_usage.py` for functional demonstrations of both KnowledgeBase and Sorter components using mock LLM providers.
+- make sure that always latest possible version of libraries are installed
