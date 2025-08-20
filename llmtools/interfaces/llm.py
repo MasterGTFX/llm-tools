@@ -1,7 +1,11 @@
 """Abstract LLM interface defining the contract for LLM providers."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Union
+from typing import Any, Optional, TypeVar, Union
+
+from pydantic import BaseModel
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class LLMInterface(ABC):
@@ -56,6 +60,29 @@ class LLMInterface(ABC):
         pass
 
     @abstractmethod
+    def generate_model(
+        self,
+        prompt: str,
+        model_class: type[T],
+        system_prompt: Optional[str] = None,
+        history: Optional[list[dict[str, str]]] = None,
+        **kwargs: Any,
+    ) -> T:
+        """Generate structured output using a Pydantic model.
+
+        Args:
+            prompt: The user prompt/input text
+            model_class: Pydantic model class to structure the response
+            system_prompt: Optional system prompt to guide behavior
+            history: Optional conversation history as list of {"role": str, "content": str}
+            **kwargs: Additional provider-specific parameters
+
+        Returns:
+            Instance of the specified Pydantic model with validated data
+        """
+        pass
+
+    @abstractmethod
     def generate_with_tools(
         self,
         prompt: str,
@@ -97,5 +124,6 @@ class LLMInterface(ABC):
             "provider": self.__class__.__name__,
             "model": "unknown",
             "supports_structured": True,
+            "supports_pydantic": True,
             "supports_tools": True,
         }

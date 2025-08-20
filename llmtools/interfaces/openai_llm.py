@@ -4,13 +4,13 @@ import json
 import os
 from typing import Any, Optional, Union
 
-from dotenv import load_dotenv  # type: ignore[import-not-found]
+from dotenv import load_dotenv
 
-from llmtools.interfaces.llm import LLMInterface
+from llmtools.interfaces.llm import LLMInterface, T
 from llmtools.utils.logging import setup_logger
 
 try:
-    from openai import OpenAI  # type: ignore[import-not-found]
+    from openai import OpenAI
 except ImportError as e:
     raise ImportError(
         "OpenAI SDK is required for OpenAI provider. "
@@ -229,6 +229,79 @@ class OpenAIProvider(LLMInterface):
             self.logger.error(f"OpenAI API error: {e}")
             raise RuntimeError(f"OpenAI API error: {e}") from e
 
+    def generate_model(
+        self,
+        prompt: str,
+        model_class: type[T],
+        system_prompt: Optional[str] = None,
+        history: Optional[list[dict[str, str]]] = None,
+        **kwargs: Any,
+    ) -> T:
+        """Generate structured output using a Pydantic model.
+
+        Args:
+            prompt: The user prompt/input text
+            model_class: Pydantic model class to structure the response
+            system_prompt: Optional system prompt to guide behavior
+            history: Optional conversation history as list of {"role": str, "content": str}
+            **kwargs: Additional provider-specific parameters
+
+        Returns:
+            Instance of the specified Pydantic model with validated data
+        """
+        self.logger.info(
+            f"Generating Pydantic model response with model: {self.model}, target: {model_class.__name__}"
+        )
+        self.logger.debug(f"Target model class: {model_class.__name__}")
+        self.logger.debug(f"Prompt length: {len(prompt)} characters")
+        if system_prompt:
+            self.logger.debug(f"System prompt length: {len(system_prompt)} characters")
+        if history:
+            self.logger.debug(f"History: {len(history)} messages")
+
+        messages = self._build_messages(prompt, system_prompt, history)
+
+        # Merge config with kwargs
+        request_params = {
+            "model": self.model,
+            "messages": messages,
+            "response_format": model_class,
+            **self.config,
+            **kwargs,
+        }
+        self.logger.debug(
+            f"Request params: {
+                {k: v for k, v in request_params.items() if k != 'messages'}
+            }"
+        )
+
+        try:
+            response = self.client.chat.completions.parse(**request_params)
+
+            # Log token usage if available
+            if hasattr(response, "usage") and response.usage:
+                self.logger.info(
+                    f"Token usage - prompt: {response.usage.prompt_tokens}, completion: {response.usage.completion_tokens}, total: {response.usage.total_tokens}"
+                )
+
+            parsed_output = response.choices[0].message.parsed
+            if parsed_output is not None:
+                self.logger.info(
+                    f"Successfully generated {model_class.__name__} instance"
+                )
+                # Cast to T since OpenAI's parse returns the correct type
+                return parsed_output  # type: ignore[no-any-return]
+            else:
+                self.logger.error("No parsed output returned from OpenAI")
+                raise ValueError("No parsed output returned from OpenAI")
+
+        except ValueError:
+            # Re-raise ValueError directly without wrapping
+            raise
+        except Exception as e:
+            self.logger.error(f"OpenAI API error: {e}")
+            raise RuntimeError(f"OpenAI API error: {e}") from e
+
     def generate_with_tools(
         self,
         prompt: str,
@@ -354,6 +427,7 @@ class OpenAIProvider(LLMInterface):
             "model": self.model,
             "base_url": self.base_url,
             "supports_structured": True,
+            "supports_pydantic": True,
             "supports_tools": True,
             "supports_history": True,
         }

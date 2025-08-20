@@ -25,13 +25,13 @@ def setup_logger(
     """
     logger = logging.getLogger(name)
 
+    # Set logging level (always update this regardless of existing handlers)
+    log_level = _get_log_level(level)
+    logger.setLevel(log_level)
+
     # Don't add handlers if they already exist
     if logger.handlers:
         return logger
-
-    # Set logging level
-    log_level = _get_log_level(level)
-    logger.setLevel(log_level)
 
     # Set format
     if format_string is None:

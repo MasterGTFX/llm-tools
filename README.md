@@ -58,7 +58,7 @@ kb = KnowledgeBase(config={"provider": "openai"}, instruction = "Create a compre
 kb.add_documents(["intro.txt", "chapter1.md"])
 
 # Process documents and return list of versions [-1] -> the latest
-output_kb = kb.process() 
+output_kb = kb.process()
 
 # Query knowledge base
 response = kb.query("Summarize changes since the first version")
