@@ -8,7 +8,7 @@ For OpenRouter usage, set OPENAI_BASE_URL to https://openrouter.ai/api/v1
 and use OpenRouter model names like "openai/gpt-4o" or "anthropic/claude-3-haiku".
 """
 
-from typing import Any, Union
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -23,33 +23,37 @@ class Person(BaseModel):
     occupation: str
 
 
-def main() -> None:
-    """Run basic OpenAI examples."""
-    # Initialize OpenAI provider (uses official OpenAI API by default)
+def basic_text_generation() -> None:
+    """Basic text generation example."""
+    print("=== Basic Text Generation ===")
     llm = OpenAIProvider(model="gpt-5-nano")
 
-    # For OpenRouter usage, uncomment the following:
-    # llm = OpenAIProvider(
-    #     model="openai/gpt-5-nano",
-    #     base_url="https://openrouter.ai/api/v1"
-    # )
-
-    # Example 1: Basic text generation
-    print("1. Basic Text Generation")
     response = llm.generate("What is OpenAI? Answer briefly.")
-    print(f"Response: {response}\n")
+    print(f"Response: {response}")
 
-    # Example 2: Text generation with conversation history
-    print("2. Text Generation with History")
+
+def text_generation_with_history() -> None:
+    """Text generation with conversation history example."""
+    print("=== Text Generation with History ===")
+    llm = OpenAIProvider(model="gpt-5-nano")
+
     history = [
         {"role": "user", "content": "Hi there! My name is Bob."},
-        {"role": "assistant", "content": "Hello! How can I help you?"},
+        {
+            "role": "assistant",
+            "content": "Hello Bob! Nice to meet you. How can I help you today?",
+        },
     ]
-    response = llm.generate("What's my name?", history=history)
-    print(f"Response: {response}\n")
 
-    # Example 3: Structured output with JSON schema
-    print("3. Structured Output (JSON Schema)")
+    response = llm.generate("What's my name?", history=history)
+    print(f"Response: {response}")
+
+
+def structured_json_example() -> None:
+    """Structured output with JSON schema example."""
+    print("=== Structured JSON Output ===")
+    llm = OpenAIProvider(model="gpt-5-nano")
+
     schema = {
         "type": "object",
         "properties": {
@@ -60,39 +64,157 @@ def main() -> None:
         "required": ["name", "age", "occupation"],
         "additionalProperties": False,
     }
-    structured_response: dict[str, Any] = llm.generate_structured(
-        "Generate a person with occupation", schema
-    )
-    print(f"JSON Schema Response: {structured_response}\n")
 
-    # Example 4: Structured output with Pydantic model
-    print("4. Structured Output (Pydantic Model)")
+    response: dict[str, Any] = llm.generate_structured(
+        "Generate a fictional person with their details", schema
+    )
+    print(f"JSON Response: {response}")
+
+
+def structured_model_example() -> None:
+    """Structured output with Pydantic model example."""
+    print("=== Structured Model Output ===")
+    llm = OpenAIProvider(model="gpt-5-nano")
+
     person = llm.generate_model(
         "Generate a fictional person with their details", Person
     )
-    print(f"Person: {person}\n")
+    print(f"Generated Person: {person}")
 
-    # Example 5: Function/tool calling
-    print("5. Function Calling")
-    tools = [
-        {
+
+def function_calling_example() -> None:
+    """Function calling example using functions parameter (auto-generation with enums)."""
+    print("=== Function Calling (Auto-Generated Schema with Enums) ===")
+    llm = OpenAIProvider(model="gpt-5-mini")
+
+    from enum import Enum
+    from typing import Literal
+
+    class TemperatureUnit(Enum):
+        CELSIUS = "celsius"
+        FAHRENHEIT = "fahrenheit"
+
+    def get_weather(
+        location: str, unit: TemperatureUnit = TemperatureUnit.CELSIUS
+    ) -> str:
+        """Get weather information for a location in specified temperature unit.
+
+        Args:
+            location: Name of the city to get weather for
+            unit: Temperature unit (celsius or fahrenheit)
+
+        Returns:
+            Weather information as a formatted string
+        """
+        weather_data_celsius = {
+            "Paris": 22,
+            "London": 15,
+            "Tokyo": 25,
+            "New York": 18,
+        }
+
+        if location not in weather_data_celsius:
+            return f"Weather data not available for {location}"
+
+        temp_c = weather_data_celsius[location]
+
+        if unit == TemperatureUnit.FAHRENHEIT:
+            temp_f = (temp_c * 9 / 5) + 32
+            return f"{location}: {temp_f}°F"
+        else:
+            return f"{location}: {temp_c}°C"
+
+    def set_priority(
+        task: str, priority: Literal["low", "medium", "high"] = "medium"
+    ) -> str:
+        """Set task priority using literal enum.
+
+        Args:
+            task: Task description
+            priority: Priority level (low, medium, or high)
+
+        Returns:
+            Task with assigned priority
+        """
+        priority_symbols = {"low": "🔵", "medium": "🟡", "high": "🔴"}
+        return f"{priority_symbols[priority]} {task} (Priority: {priority.upper()})"
+
+    # Just pass the functions - schemas are auto-generated with enum constraints!
+    response = llm.generate_with_tools(
+        prompt="What's the weather in Paris and Tokyo in Fahrenheit? Also set priority for task 'Review code' as high priority.",
+        functions=[get_weather, set_priority],
+    )
+    print(f"Final Response: {response}")
+
+
+def manual_function_calling_example() -> None:
+    """Function calling example using manual function_map (original approach)."""
+    print("=== Function Calling (Manual Schema) ===")
+    llm = OpenAIProvider(model="gpt-5-mini")
+
+    def get_weather(location: str, unit: str = "celsius") -> str:
+        """Get weather information for a location in specified temperature unit."""
+        weather_data_celsius = {
+            "Paris": 22,
+            "London": 15,
+            "Tokyo": 25,
+            "New York": 18,
+        }
+
+        if location not in weather_data_celsius:
+            return f"Weather data not available for {location}"
+
+        temp_c = weather_data_celsius[location]
+
+        if unit == "fahrenheit":
+            temp_f = (temp_c * 9 / 5) + 32
+            return f"{location}: {temp_f}°F"
+        else:
+            return f"{location}: {temp_c}°C"
+
+    # Manual function map with function as key, schema as value (original format)
+    function_map = {
+        get_weather: {
             "type": "function",
             "function": {
                 "name": "get_weather",
-                "description": "Get weather for a location",
+                "description": "Get weather information for a location in specified temperature unit",
                 "parameters": {
                     "type": "object",
-                    "properties": {"location": {"type": "string"}},
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "City name",
+                        },
+                        "unit": {
+                            "type": "string",
+                            "description": "Temperature unit",
+                            "enum": ["celsius", "fahrenheit"],
+                        },
+                    },
                     "required": ["location"],
                 },
             },
         }
-    ]
-    tool_response: Union[str, dict[str, Any]] = llm.generate_with_tools(
-        "What's the weather in Paris?", tools
+    }
+
+    # Automatic execution - LLM calls function and gets results automatically
+    response = llm.generate_with_tools(
+        "What's the weather in Paris in Celsius and New York in Fahrenheit?",
+        function_map=function_map,
     )
-    print(f"Tool Response: {tool_response}")
+    print(f"Final Response: {response}")
 
 
 if __name__ == "__main__":
-    main()
+    # basic_text_generation()
+    # print()
+    # text_generation_with_history()
+    # print()
+    # structured_json_example()
+    # print()
+    # structured_model_example()
+    # print()
+    function_calling_example()
+    print()
+    manual_function_calling_example()

@@ -15,7 +15,7 @@ def main() -> None:
     print("=== LLMTools Basic Usage Examples ===\n")
 
     # Initialize mock LLM provider
-    from typing import Any, Optional, Union
+    from typing import Any, Callable, Optional
 
     from llmtools.interfaces.llm import LLMInterface
 
@@ -37,6 +37,20 @@ def main() -> None:
             history: Optional[list[dict[str, str]]] = None,
             **kwargs: Any,
         ) -> dict[str, Any]:
+            # Return a more realistic response based on the schema
+            properties = schema.get("properties", {})
+            if "sorted_items" in properties:
+                # For Sorter strict mode
+                return {
+                    "sorted_items": ["apple", "banana", "orange", "pear"],
+                    "reasoning": "Sorted alphabetically",
+                }
+            elif "filtered_items" in properties:
+                # For Sorter filter mode
+                return {
+                    "filtered_items": ["apple", "banana"],
+                    "reasoning": "Filtered items containing 'a'",
+                }
             return {"mock": "structured_response"}
 
         def generate_model(
@@ -52,11 +66,15 @@ def main() -> None:
         def generate_with_tools(
             self,
             prompt: str,
-            tools: list[dict[str, Any]],
+            functions: Optional[list[Callable[..., Any]]] = None,
+            function_map: Optional[dict[Callable[..., Any], dict[str, Any]]] = None,
             system_prompt: Optional[str] = None,
             history: Optional[list[dict[str, str]]] = None,
+            max_tool_iterations: int = 10,
+            handle_tool_errors: bool = True,
+            tool_timeout: Optional[float] = None,
             **kwargs: Any,
-        ) -> Union[str, dict[str, Any]]:
+        ) -> str:
             return "Mock tool response"
 
         def configure(self, config: dict[str, Any]) -> None:

@@ -1,7 +1,7 @@
 """Diff management utilities for tracking changes in knowledge bases."""
 
-import json
 import re
+from typing import Any
 
 from llmtools.interfaces.llm import LLMInterface
 from llmtools.utils.logging import setup_logger
@@ -17,33 +17,42 @@ MAX_INDENTATION_LEVELS = 5
 # Module-level logger
 logger = setup_logger(__name__)
 
-# Function tool specification for edit_content
-EDIT_CONTENT_TOOL = {
-    "type": "function",
-    "function": {
-        "name": "edit_content",
-        "description": "Apply search-replace edit to content",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "reasoning": {
-                    "type": "string",
-                    "description": "Why this specific change is needed",
-                },
-                "search": {"type": "string", "description": "Exact text to find"},
-                "replace": {
-                    "type": "string",
-                    "description": "Exact text to replace it with",
-                },
-                "replace_all": {
-                    "type": "boolean",
-                    "description": "Whether to replace all occurrences",
-                    "default": False,
-                },
-            },
-            "required": ["reasoning", "search", "replace"],
+
+# Function for edit_content functionality
+def edit_content(
+    reasoning: str, search: str, replace: str, replace_all: bool = False
+) -> dict[str, Any]:
+    """Apply search-replace edit to content."""
+    return {
+        "reasoning": reasoning,
+        "search": search,
+        "replace": replace,
+        "replace_all": replace_all,
+    }
+
+
+# Function schema for edit_content
+EDIT_CONTENT_SCHEMA = {
+    "description": "Apply search-replace edit to content",
+    "parameters": [
+        {
+            "name": "reasoning",
+            "type": "string",
+            "description": "Why this specific change is needed",
         },
-    },
+        {"name": "search", "type": "string", "description": "Exact text to find"},
+        {
+            "name": "replace",
+            "type": "string",
+            "description": "Exact text to replace it with",
+        },
+        {
+            "name": "replace_all",
+            "type": "boolean",
+            "description": "Whether to replace all occurrences",
+        },
+    ],
+    "required": ["reasoning", "search", "replace"],
 }
 
 # System prompt for LLM diff generation
@@ -131,65 +140,25 @@ def _generate_and_apply_with_tools(
                     else:
                         return (False, f"ERROR: {error_msg}")
 
-            # Use function calling
+            # Use function calling with functions parameter (new approach)
             response = llm_provider.generate_with_tools(
                 prompt=user_prompt,
-                tools=[EDIT_CONTENT_TOOL],
+                functions=[edit_content],
                 system_prompt=SYSTEM_PROMPT,
                 history=conversation_history,
             )
 
-            # Handle tool calls if present
-            if isinstance(response, dict) and response.get("tool_calls"):
-                for tool_call in response["tool_calls"]:
-                    if tool_call["function"]["name"] == "edit_content":
-                        args = json.loads(tool_call["function"]["arguments"])
-                        reasoning = args.get("reasoning", "")
-                        logger.info(f"Applying edit: {reasoning}")
+            # With automatic function execution, response is always a string
+            # The edit_content function was executed automatically during the call
+            logger.info(f"LLM response received: {response[:100]}...")
 
-                        success, message = edit_content(
-                            reasoning=reasoning,
-                            search=args.get("search", ""),
-                            replace=args.get("replace", ""),
-                            replace_all=args.get("replace_all", False),
-                        )
-
-                        # Log the result
-                        if success:
-                            logger.info(f"✓ Edit successful: {reasoning}")
-                        else:
-                            logger.warning(f"✗ Edit failed: {reasoning} - {message}")
-
-                        # Add tool result to conversation
-                        conversation_history.append(
-                            {
-                                "role": "assistant",
-                                "content": f"Called edit_content: {reasoning or 'No reason provided'}",
-                            }
-                        )
-
-                        # For failed edits, include current content in response
-                        if not success:
-                            response_content = (
-                                f"{message}\n\nCurrent content:\n{current_content}"
-                            )
-                        else:
-                            response_content = message
-
-                        conversation_history.append(
-                            {"role": "user", "content": response_content}
-                        )
-            elif isinstance(response, str):
-                # No tool calls, just a text response - this might be an error or completion
-                logger.info(f"LLM returned text response: {response[:100]}...")
-                raise ValueError(f"No edits were made: {response}")
-
-            # Check if we've made any changes
+            # Check if content was modified (the edit_content function updates current_content)
             if current_content != original_content:
-                logger.info("Successfully applied all LLM edits")
+                logger.info("Edit was successfully applied")
                 return current_content
             else:
-                # No changes made, treat as failure for retry
+                # No changes made, might need to retry
+                logger.warning("No changes detected after function execution")
                 raise ValueError("No changes were applied to the content")
 
         except Exception as e:

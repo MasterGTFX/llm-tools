@@ -2,12 +2,22 @@
 
 import json
 import os
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, cast
 
 from dotenv import load_dotenv
 
 from llmtools.interfaces.llm import LLMInterface, T
 from llmtools.utils.logging import setup_logger
+from llmtools.utils.tools import (
+    ToolExecutionError,
+    convert_functions_to_map,
+    create_function_not_found_message,
+    create_tool_error_message,
+    execute_tool_function,
+    format_tool_result,
+    parse_tool_arguments,
+    validate_tool_functions,
+)
 
 try:
     from openai import OpenAI
@@ -305,77 +315,333 @@ class OpenAIProvider(LLMInterface):
     def generate_with_tools(
         self,
         prompt: str,
-        tools: list[dict[str, Any]],
+        functions: Optional[list[Callable[..., Any]]] = None,
+        function_map: Optional[dict[Callable[..., Any], dict[str, Any]]] = None,
         system_prompt: Optional[str] = None,
         history: Optional[list[dict[str, str]]] = None,
+        max_tool_iterations: int = 10,
+        handle_tool_errors: bool = True,
+        tool_timeout: Optional[float] = None,
         **kwargs: Any,
-    ) -> Union[str, dict[str, Any]]:
-        """Generate response with access to function/tool calling.
+    ) -> str:
+        """Generate response with access to function/tool calling. Either functions or function_map (or both) must be provided.
 
         Args:
             prompt: The user prompt/input text
-            tools: List of available tools/functions with their schemas
+            functions: Optional list of Python functions to auto-convert to tools.
+                      Function schemas are generated from type hints and docstrings.
+            function_map: Optional dict mapping Python functions to their schema definitions.
             system_prompt: Optional system prompt to guide behavior
             history: Optional conversation history as list of {"role": str, "content": str}
+            max_tool_iterations: Maximum number of tool calling rounds to prevent infinite loops
+            handle_tool_errors: Whether to handle tool execution errors gracefully by informing the LLM
+            tool_timeout: Optional timeout in seconds for individual tool execution
             **kwargs: Additional provider-specific parameters
 
         Returns:
-            Either a text response or structured tool call data
+            Final text response after all tool calls are completed
+        """
+        # Validate that at least one tool source is provided
+        if not functions and not function_map:
+            raise ValueError("Either 'functions' or 'function_map' must be provided")
+
+        # Combine auto-generated and manual function maps
+        combined_function_map = {}
+
+        # Handle functions parameter (auto-convert)
+        if functions:
+            auto_generated_map = convert_functions_to_map(functions)
+            combined_function_map.update(auto_generated_map)
+
+        # Handle function_map parameter (manual schemas)
+        if function_map:
+            combined_function_map.update(function_map)
+
+        # Convert combined function_map to tools and tool_functions format
+        tools, tool_functions = self._convert_function_map(combined_function_map)
+
+        # Validate tool functions match tool schemas
+        validation_warnings = validate_tool_functions(tools, tool_functions)
+        for warning in validation_warnings:
+            self.logger.warning(warning)
+
+        # Start automatic tool execution loop
+        return self._execute_tools_automatically(
+            prompt,
+            tools,
+            tool_functions,
+            system_prompt,
+            history,
+            max_tool_iterations,
+            handle_tool_errors,
+            tool_timeout,
+            **kwargs,
+        )
+
+    def _convert_function_map(
+        self, function_map: dict[Callable[..., Any], dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], dict[str, Callable[..., Any]]]:
+        """Convert function_map to tools and tool_functions format.
+
+        Args:
+            function_map: Dict mapping functions to their schema definitions
+
+        Returns:
+            Tuple of (tools list, tool_functions dict) for internal use
+        """
+        tools = []
+        tool_functions = {}
+
+        for func, definition in function_map.items():
+            function_name = func.__name__
+
+            # Check if definition is already in full OpenAI format or simplified format
+            if (
+                "type" in definition
+                and definition["type"] == "function"
+                and "function" in definition
+            ):
+                # Already in full OpenAI format (from convert_functions_to_map)
+                tool = definition
+            else:
+                # Simplified format - convert to full JSON schema format
+                converted_definition = self._convert_simplified_schema(definition)
+                # Build OpenAI tool format
+                tool = {
+                    "type": "function",
+                    "function": {"name": function_name, **converted_definition},
+                }
+
+            tools.append(tool)
+            tool_functions[function_name] = func
+
+        self.logger.debug(f"Converted {len(function_map)} functions to tools format")
+        return tools, tool_functions
+
+    def _convert_simplified_schema(self, definition: dict[str, Any]) -> dict[str, Any]:
+        """Convert simplified schema format to full JSON schema format.
+
+        Args:
+            definition: Simplified schema with parameters as list
+
+        Returns:
+            Full JSON schema format for OpenAI
+        """
+        converted = {}
+
+        # Copy description if present
+        if "description" in definition:
+            converted["description"] = definition["description"]
+
+        # Convert parameters list to JSON schema format
+        if "parameters" in definition and isinstance(definition["parameters"], list):
+            properties = {}
+
+            for param in definition["parameters"]:
+                param_name = param["name"]
+                param_schema = {"type": param["type"]}
+
+                if "description" in param:
+                    param_schema["description"] = param["description"]
+                if "enum" in param:
+                    param_schema["enum"] = param["enum"]
+
+                properties[param_name] = param_schema
+
+            # Build full parameters schema
+            parameters_schema: dict[str, Any] = {
+                "type": "object",
+                "properties": properties,
+            }
+
+            # Add required fields if specified
+            if "required" in definition:
+                parameters_schema["required"] = definition["required"]
+
+            # Add strict mode if specified
+            if definition.get("strict", False):
+                parameters_schema["additionalProperties"] = False
+
+            converted["parameters"] = parameters_schema
+
+        return converted
+
+    def _execute_tools_automatically(
+        self,
+        prompt: str,
+        tools: list[dict[str, Any]],
+        tool_functions: dict[str, Callable[..., Any]],
+        system_prompt: Optional[str] = None,
+        history: Optional[list[dict[str, str]]] = None,
+        max_tool_iterations: int = 10,
+        handle_tool_errors: bool = True,
+        tool_timeout: Optional[float] = None,
+        **kwargs: Any,
+    ) -> str:
+        """Execute tools automatically and return final text response.
+
+        Handles the complete tool calling loop until LLM returns a text response.
         """
         messages = self._build_messages(prompt, system_prompt, history)
+        iteration = 0
+        total_tokens_used = 0
+
+        self.logger.info(f"Starting automatic tool execution loop, model: {self.model}")
+        self.logger.debug(f"Max iterations: {max_tool_iterations}")
+        self.logger.debug(f"Available functions: {list(tool_functions.keys())}")
 
         # Merge config with kwargs
         request_params = {
             "model": self.model,
-            "messages": messages,
             "tools": tools,
             **self.config,
             **kwargs,
         }
 
-        try:
-            self.logger.info(f"Generating response with tools, model: {self.model}")
+        while iteration < max_tool_iterations:
+            iteration += 1
             self.logger.debug(
-                f"Available tools: {[tool.get('function', {}).get('name', 'unknown') for tool in tools]}"
+                f"Tool execution iteration {iteration}/{max_tool_iterations}"
             )
 
-            response = self.client.chat.completions.create(**request_params)
-            message = response.choices[0].message
+            try:
+                # Make API call
+                response = self.client.chat.completions.create(
+                    messages=cast(Any, messages), **request_params
+                )
+                message = response.choices[0].message
 
-            # Log token usage if available
-            if hasattr(response, "usage") and response.usage:
-                self.logger.info(
-                    f"Token usage - prompt: {response.usage.prompt_tokens}, completion: {response.usage.completion_tokens}, total: {response.usage.total_tokens}"
+                # Log token usage
+                if hasattr(response, "usage") and response.usage:
+                    iteration_tokens = response.usage.total_tokens
+                    total_tokens_used += iteration_tokens
+                    self.logger.debug(
+                        f"Iteration {iteration} token usage: {iteration_tokens} (total: {total_tokens_used})"
+                    )
+
+                # Check if model wants to call tools
+                if not message.tool_calls:
+                    # Final text response
+                    final_content = message.content or ""
+                    self.logger.info(
+                        f"Tool execution completed after {iteration} iterations, "
+                        f"total tokens: {total_tokens_used}, response length: {len(final_content)} chars"
+                    )
+                    return final_content
+
+                # Execute tool calls
+                self.logger.info(f"Executing {len(message.tool_calls)} tool call(s)")
+
+                # Add assistant message with tool calls to conversation
+                messages.append(
+                    cast(
+                        Any,
+                        {
+                            "role": "assistant",
+                            "content": message.content or "",
+                            "tool_calls": [
+                                {
+                                    "id": tc.id,
+                                    "type": tc.type,
+                                    "function": {
+                                        "name": getattr(tc, "function", tc).name
+                                        if hasattr(tc, "function")
+                                        else tc.name,
+                                        "arguments": getattr(
+                                            tc, "function", tc
+                                        ).arguments
+                                        if hasattr(tc, "function")
+                                        else tc.arguments,
+                                    },
+                                }
+                                for tc in (message.tool_calls or [])
+                            ],
+                        },
+                    )
                 )
 
-            # Check if the model wants to call a tool
-            if message.tool_calls:
-                tool_names = [tc.function.name for tc in message.tool_calls]
-                self.logger.info(f"Model requested tool calls: {tool_names}")
-                return {
-                    "content": message.content,
-                    "tool_calls": [
-                        {
-                            "id": tool_call.id,
-                            "type": tool_call.type,
-                            "function": {
-                                "name": tool_call.function.name,
-                                "arguments": tool_call.function.arguments,
-                            },
-                        }
-                        for tool_call in message.tool_calls
-                    ],
-                }
-            else:
-                # Regular text response
-                self.logger.info("Model returned text response (no tool calls)")
-                content = message.content or ""
-                self.logger.debug(f"Response length: {len(content)} characters")
-                return content
+                # Execute each tool call
+                for tool_call in message.tool_calls or []:
+                    # Handle both function tool calls and custom tool calls
+                    if hasattr(tool_call, "function"):
+                        function_name = tool_call.function.name
+                        function_args = tool_call.function.arguments
+                    else:
+                        # Custom tool call type
+                        function_name = getattr(tool_call, "name", "unknown")
+                        function_args = getattr(tool_call, "arguments", "{}")
 
-        except Exception as e:
-            self.logger.error(f"OpenAI API error: {e}")
-            raise RuntimeError(f"OpenAI API error: {e}") from e
+                    tool_call_id = tool_call.id
+
+                    try:
+                        self.logger.debug(f"Executing function: {function_name}")
+
+                        # Check if function exists
+                        if function_name not in tool_functions:
+                            error_msg = create_function_not_found_message(function_name)
+                            self.logger.warning(f"Function not found: {function_name}")
+                        else:
+                            # Parse arguments and execute function
+                            arguments = parse_tool_arguments(function_args)
+                            function = tool_functions[function_name]
+
+                            result = execute_tool_function(
+                                function, arguments, timeout=tool_timeout
+                            )
+
+                            # Format result for LLM
+                            formatted_result = format_tool_result(result)
+                            self.logger.debug(
+                                f"Function {function_name} executed successfully, result length: {len(formatted_result)} chars"
+                            )
+
+                            # Add tool result to conversation
+                            messages.append(
+                                cast(
+                                    Any,
+                                    {
+                                        "role": "tool",
+                                        "tool_call_id": tool_call_id,
+                                        "content": formatted_result,
+                                    },
+                                )
+                            )
+                            continue
+
+                    except (ToolExecutionError, json.JSONDecodeError) as e:
+                        error_msg = create_tool_error_message(
+                            function_name, e, handle_tool_errors
+                        )
+                        self.logger.error(
+                            f"Tool execution error for {function_name}: {e}"
+                        )
+
+                    # Add error message to conversation
+                    messages.append(
+                        cast(
+                            Any,
+                            {
+                                "role": "tool",
+                                "tool_call_id": tool_call_id,
+                                "content": error_msg,
+                            },
+                        )
+                    )
+
+            except Exception as e:
+                self.logger.error(f"OpenAI API error in tool execution loop: {e}")
+                raise RuntimeError(
+                    f"OpenAI API error in tool execution loop: {e}"
+                ) from e
+
+        # Max iterations reached
+        self.logger.warning(
+            f"Maximum tool iterations ({max_tool_iterations}) reached without final response"
+        )
+        raise RuntimeError(
+            f"Tool execution exceeded maximum iterations ({max_tool_iterations}). "
+            f"The conversation may be stuck in a loop."
+        )
 
     def configure(self, config: dict[str, Any]) -> None:
         """Configure the LLM provider with settings.

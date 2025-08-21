@@ -1,7 +1,7 @@
 """Abstract LLM interface defining the contract for LLM providers."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar
 
 from pydantic import BaseModel
 
@@ -86,22 +86,32 @@ class LLMInterface(ABC):
     def generate_with_tools(
         self,
         prompt: str,
-        tools: list[dict[str, Any]],
+        functions: Optional[list[Callable[..., Any]]] = None,
+        function_map: Optional[dict[Callable[..., Any], dict[str, Any]]] = None,
         system_prompt: Optional[str] = None,
         history: Optional[list[dict[str, str]]] = None,
+        max_tool_iterations: int = 10,
+        handle_tool_errors: bool = True,
+        tool_timeout: Optional[float] = None,
         **kwargs: Any,
-    ) -> Union[str, dict[str, Any]]:
+    ) -> str:
         """Generate response with access to function/tool calling.
 
         Args:
             prompt: The user prompt/input text
-            tools: List of available tools/functions with their schemas
+            functions: Optional list of Python functions to auto-convert to tools.
+                      Function schemas are generated from type hints and docstrings.
+            function_map: Optional dict mapping Python functions to their schema definitions.
+                         Either functions or function_map (or both) must be provided.
             system_prompt: Optional system prompt to guide behavior
             history: Optional conversation history as list of {"role": str, "content": str}
+            max_tool_iterations: Maximum number of tool calling rounds to prevent infinite loops
+            handle_tool_errors: Whether to handle tool execution errors gracefully by informing the LLM
+            tool_timeout: Optional timeout in seconds for individual tool execution
             **kwargs: Additional provider-specific parameters
 
         Returns:
-            Either a text response or structured tool call data
+            Final text response after all tool calls are completed
         """
         pass
 
