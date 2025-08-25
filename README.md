@@ -1,33 +1,18 @@
 # llm-tools
 
-A modular set of **LLM utilities for personal and project use**, designed to be minimal, configurable, and composable.
-Each tool can be imported independently (no heavy boilerplate, no large dependency trees).
+A collection of **simple, self-contained LLM functions** for personal and project use.
+Just import a function and use it - no classes, no configuration, no heavy dependencies.
 
-The goal is to build a **Pythonic toolkit** that provides reusable building blocks for working with LLMs.
+Each function is designed to solve a specific problem with a single line of code, using OpenAI by default.
 
 ---
 
-## Features (planned)
+## Available Tools
 
-* **Knowledge Base (`llmtools.knowledge_base`)**
-
-  * Build and iteratively update a knowledge base from a set of documents (any text form).
-  * Supports an optional *initial knowledge base*.
-  * Stores incremental versions under a `.history/` directory at the target output location.
-  * Uses structured LLM output to manage diffs and track updates over time.
-
-* **Sorter (`llmtools.reranker`)**
-
-  * Sort or filter a Python list based on an instruction using an LLM.
-  * **Strict mode** → output has the same length and content as the input, only re-ordered.
-  * **Filter mode** → output is a subset of items that satisfy certain text conditions.
-  * Useful for lightweight re-ranking, filtering, or ordering tasks.
-
-* **Shared Components**
-
-  * **Interfaces** → abstract definitions for LLMs and storage backends.
-  * **Utils** → helpers like diff manager, chunking, embeddings, structured output parsing.
-  * **Config** → Pydantic-based configs for flexibility.
+* **`llm_filter(items, instruction)`** - Filter a list based on natural language criteria
+* **`llm_sorter(items, instruction)`** - Sort a list using natural language instructions
+* **`llm_knowledge_base(documents, instruction)`** - Build a knowledge base from documents
+* **`llm_edit(text, instruction)`** - Edit or modify text content using LLM instructions
 
 ---
 
@@ -39,48 +24,59 @@ cd llm-tools
 pip install -e .
 ```
 
-No extra dependencies required beyond Python 3.9+ and `pydantic`.
-Optional integrations (like `openai`) can be installed if needed.
+Requires Python 3.9+ and automatically installs OpenAI for immediate use.
+Set your `OPENAI_API_KEY` environment variable and you're ready to go.
 
 ---
 
-## Usage Example
+## Usage Examples
 
-### Knowledge Base
+### Filter Lists
 
 ```python
-from llmtools.knowledge_base import KnowledgeBase
+from llmtools import llm_filter
 
-# Initialize with a backend LLM client
-kb = KnowledgeBase(config={"provider": "openai"}, instruction = "Create a comprehensive knowledge base containting all useful information from book", output_dir=None, init = None)
+fruits = ["apple", "banana", "pear", "orange", "grape"]
+citrus = llm_filter(fruits, "Keep only citrus fruits")
+print(citrus)  # ["orange"]
 
-# Add a batch of documents
-kb.add_documents(["intro.txt", "chapter1.md"])
-
-# Process documents and return list of versions [-1] -> the latest
-output_kb = kb.process()
-
-# Query knowledge base
-response = kb.query("Summarize changes since the first version")
-print(response)
+numbers = [1, 15, 23, 8, 42, 7]
+large = llm_filter(numbers, "Keep numbers greater than 10")
+print(large)  # [15, 23, 42]
 ```
 
-### Sorter
+### Sort Lists
 
 ```python
-from llmtools.sorter import Sorter
+from llmtools import llm_sorter
 
-items = ["apple", "banana", "pear", "orange"]
+fruits = ["apple", "banana", "pear", "orange"]
+sorted_fruits = llm_sorter(fruits, "Sort alphabetically")
+print(sorted_fruits)  # ["apple", "banana", "orange", "pear"]
 
-# Strict sorting (preserves all items, only reorders)
-sorter = Sorter(mode="strict")
-result = sorter.sort(items, instruction="Sort fruits alphabetically")
-print(result)  # ["apple", "banana", "orange", "pear"]
+tasks = ["buy groceries", "urgent: call mom", "finish project", "book dentist"]
+by_priority = llm_sorter(tasks, "Sort by urgency")
+print(by_priority)  # ["urgent: call mom", "finish project", "buy groceries", "book dentist"]
+```
 
-# Filter mode (subset only)
-filterer = Sorter(mode="filter")
-result = filterer.sort(items, instruction="Keep only fruits with 'a'")
-print(result)  # ["apple", "banana", "orange"]
+### Build Knowledge Base
+
+```python
+from llmtools import llm_knowledge_base
+
+documents = ["intro.txt", "chapter1.md", "notes.md"]
+kb = llm_knowledge_base(documents, "Create a comprehensive summary of all key concepts")
+print(kb)  # Returns structured knowledge base content
+```
+
+### Edit Text
+
+```python
+from llmtools import llm_edit
+
+text = "This is a draft document with some errors."
+improved = llm_edit(text, "Fix grammar and make more professional")
+print(improved)  # "This is a draft document that contains some errors."
 ```
 
 ---
@@ -91,27 +87,18 @@ print(result)  # ["apple", "banana", "orange"]
 llm-tools/
 │
 ├── llmtools/
-│   ├── __init__.py
-│   ├── knowledge_base/
-│   │   ├── __init__.py
-│   │   └── base.py
+│   ├── __init__.py       # Main function exports
+│   ├── tools/            # Self-contained tool functions
+│   │   ├── filter.py     # llm_filter function
+│   │   ├── sorter.py     # llm_sorter function
+│   │   ├── knowledge.py  # llm_knowledge_base function
+│   │   └── edit.py       # llm_edit function
 │   │
-│   ├── sorter/
-│   │   ├── __init__.py
-│   │   └── base.py
+│   ├── utils/            # Shared utilities
+│   │   └── llm_client.py # OpenAI client utilities
 │   │
-│   ├── interfaces/
-│   │   ├── __init__.py
-│   │   └── llm.py        # abstract LLM interface
-│   │
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   └── diff_manager.py
-│   │
-│   └── config.py         # Pydantic config models
-│
-├── tests/                # lightweight tests
-│
+├── examples/             # Simple usage examples
+├── tests/                # Function tests
 └── README.md
 ```
 
@@ -119,10 +106,9 @@ llm-tools/
 
 ## Philosophy
 
-* **Minimal dependencies** → only install what you need.
-* **Pythonic design** → clean interfaces, clear module boundaries.
-* **Composable** → tools can be used independently or together.
-* **Configurable** → Pydantic-based configs for flexibility.
-* **Not a framework** → just utilities you can import and use.
-* **Utilize LLM tool calling** → leverage model-native function/tool invocation for better modularity.
-* **Structured output** → enforce predictable, machine-usable responses (JSON, diffs, versioning).
+* **Simplicity first** → single function calls solve specific problems
+* **No configuration** → works out of the box with OpenAI
+* **Self-contained functions** → no classes or complex setup required
+* **Immediate productivity** → import and use in one line
+* **Leverage structured output** → use LLM function calling and JSON schema internally
+* **Predictable results** → consistent, machine-usable responses

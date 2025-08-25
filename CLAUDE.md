@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a modular Python toolkit for LLM utilities designed to be minimal, configurable, and composable. Each tool can be imported independently without heavy dependencies.
+This is a collection of simple, self-contained LLM functions that solve specific problems with a single function call. Each function uses OpenAI by default and requires no configuration or setup.
 
 ## Development Setup
 
@@ -32,71 +32,79 @@ pytest tests/test_sorter.py -v
 
 ## Architecture
 
-The project follows a modular structure with working implementations:
+The project provides simple function-based tools:
 
-### Core Modules
-- `llmtools.knowledge_base` - Build and update knowledge bases from documents with versioning
-- `llmtools.sorter` - Sort/filter Python lists using LLM instructions with strict/filter modes
-- `llmtools.interfaces` - Abstract LLM interface definitions
-- `llmtools.utils` - Shared utilities (diff management, chunking, embeddings, structured output)
-- `llmtools.config` - Pydantic-based configuration models
+### Available Tools
+- `llm_filter(items, instruction)` - Filter lists using natural language
+- `llm_sorter(items, instruction)` - Sort lists using natural language
+- `llm_knowledge_base(documents, instruction)` - Build knowledge bases from documents
+- `llm_edit(text, instruction)` - Edit text using LLM instructions
 
 ### Key Design Principles
-- **Minimal dependencies**: Only Pydantic required, optional integrations available
-- **Pythonic interfaces**: Clean module boundaries and clear abstractions
-- **Structured output**: Leverage LLM tool calling for predictable JSON/diff responses
-- **Composable tools**: Each component works independently or together
-- **Configuration-driven**: Pydantic models for flexible configuration
+- **Function-based**: Everything is a simple function call
+- **Self-contained**: Each function handles its own LLM setup internally
+- **Default OpenAI**: Uses OpenAI provider with sensible defaults
+- **No configuration**: Works immediately with just OPENAI_API_KEY
+- **Structured output**: Leverages JSON schema and function calling internally
+- **Type restoration**: Maintains original data types where possible
 
-### Knowledge Base Component
-- Supports incremental updates with `.history/` versioning
-- Uses structured LLM output for diff management
-- Can initialize with existing knowledge base
-- Automatically creates metadata.json tracking versions
-- API matches README examples exactly
+### Function Implementation Pattern
+Each tool function follows this pattern:
+1. **Input validation**: Check parameters and types
+2. **LLM setup**: Create OpenAI provider with defaults
+3. **Structured call**: Use JSON schema for predictable output
+4. **Result processing**: Convert back to expected types
+5. **Error handling**: Graceful fallbacks and clear error messages
 
-### Sorter Component
-- **Strict mode**: Preserves all input items, only reorders
-- **Filter mode**: Returns subset matching conditions
-- Includes validation and type restoration
-- Configurable retry logic for LLM failures
+## LLM Integration
 
-## LLM Provider Integration
+All functions use the existing `OpenAIProvider` from `llmtools.interfaces.openai_llm`:
+- **Default provider**: Creates OpenAI client automatically
+- **Environment-based**: Uses `OPENAI_API_KEY` from environment
+- **Structured output**: Leverages `generate_structured()` method
+- **Function calling**: Uses `generate_with_tools()` when needed
 
-The project uses an abstract `LLMInterface` in `llmtools.interfaces.llm` that requires:
-- `generate()` - Basic text generation
-- `generate_structured()` - JSON schema-conforming output
-- `generate_with_tools()` - Function/tool calling capability
-
-Example LLM provider implementations should inherit from this interface.
+Functions create their own provider instances internally with sensible defaults.
 
 ## Current Implementation Status
 
-✅ **Complete and functional**:
-- Package structure with proper imports
-- Pydantic configuration models (LLMConfig, KnowledgeBaseConfig, SorterConfig)
-- KnowledgeBase class with document processing and versioning
-- Sorter class with strict/filter modes and validation
-- DiffManager utility for version tracking
-- Comprehensive test suite (16 tests passing)
-- Modern development tooling (ruff, mypy, pre-commit)
-- GitHub Actions CI/CD
+✅ **Infrastructure ready**:
+- OpenAI provider implementation with structured output
+- Tool execution utilities and function calling
+- Development tooling (ruff, mypy, pre-commit)
+- Test framework setup
 
-🔄 **Ready for extension**:
-- Additional LLM provider implementations
-- More utility functions in `llmtools.utils`
-- Enhanced chunking and embedding features
-- Real LLM provider integrations (OpenAI, Anthropic, etc.)
+🔄 **Tools to implement**:
+- `llm_filter()` function in `tools/filter.py`
+- `llm_sorter()` function in `tools/sorter.py`
+- `llm_knowledge_base()` function in `tools/knowledge.py`
+- `llm_edit()` function in `tools/edit.py`
+- Update `__init__.py` to export functions
+- Create simple usage examples
 
 ## Working Examples
 
-See `examples/basic_usage.py` for functional demonstrations of both KnowledgeBase and Sorter components using mock LLM providers.
+See `examples/` directory for simple function usage examples demonstrating each tool.
 
-## Developer notes
-- make sure that always latest possible version of libraries are installed
-- examples should be simple, basic, straightforward to show up usage to User - do not cover all scenarios etc
-- Check code quality with tools like ruff, mypy
-- Do not mock in tests. Create just simple unit/functional tests
-- we're in active development, not clients yet - do not bother about backward compatible
-- use the local /venv
-- while logging, be clear, concise yet meaningful. use proper logging level. use getlogger with specific logger names
+## Developer Notes
+
+### Function Development Guidelines
+- **Self-contained**: Each function handles its own OpenAI provider setup
+- **Default config**: Use `OpenAIProvider(model="gpt-5-mini")` as default
+- **Structured output**: Always use `generate_structured()` with JSON schema
+- **Type restoration**: Convert results back to original input types
+- **Error handling**: Graceful fallbacks, clear error messages
+- **Logging**: Use specific logger names, meaningful messages
+
+### Code Quality
+- Run `ruff check` and `ruff format` before committing
+- Use `mypy --strict` for type checking
+- Keep functions simple and focused on single tasks
+- Examples should be basic and straightforward
+- Use latest library versions
+- No backward compatibility concerns during active development
+
+### Testing
+- Create simple unit tests for each function
+- Test with real OpenAI calls (no mocking)
+- Use local `/venv` for development

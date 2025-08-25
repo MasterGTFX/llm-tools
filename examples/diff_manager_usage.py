@@ -1,12 +1,6 @@
 """Simple diff manager usage examples."""
-
-import os
-
 from llmtools import OpenAIProvider
-from llmtools.utils.diff_manager import apply_llm_diff
-
-# Enable llmtools logging to see the reasoning messages
-os.environ["LLMTOOLS_LOG_LEVEL"] = "INFO"
+from llmtools.utils.diff_manager import llm_edit
 
 
 def simple_example() -> None:
@@ -19,7 +13,7 @@ def simple_example() -> None:
 hello()"""
     print("Original:\n", original)
 
-    modified = apply_llm_diff(
+    modified = llm_edit(
         original_content=original,
         prompt="Change the message to say 'Hi there!'",
         llm_provider=llm,
@@ -44,7 +38,7 @@ result = calc.add(5, 3)
 print(result)"""
     print("Original:\n", original)
 
-    modified = apply_llm_diff(
+    modified = llm_edit(
         original_content=original,
         prompt="Add a subtract method and use it in the example",
         llm_provider=llm,

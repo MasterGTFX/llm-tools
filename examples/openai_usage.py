@@ -7,12 +7,15 @@ Get your API key at: https://platform.openai.com/api-keys
 For OpenRouter usage, set OPENAI_BASE_URL to https://openrouter.ai/api/v1
 and use OpenRouter model names like "openai/gpt-4o" or "anthropic/claude-3-haiku".
 """
-
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel
 
 from llmtools import OpenAIProvider
+
+# Global LLM provider to avoid duplication
+llm = OpenAIProvider(model="gpt-5-mini")
 
 
 class Person(BaseModel):
@@ -26,8 +29,6 @@ class Person(BaseModel):
 def basic_text_generation() -> None:
     """Basic text generation example."""
     print("=== Basic Text Generation ===")
-    llm = OpenAIProvider(model="gpt-5-nano")
-
     response = llm.generate("What is OpenAI? Answer briefly.")
     print(f"Response: {response}")
 
@@ -35,8 +36,6 @@ def basic_text_generation() -> None:
 def text_generation_with_history() -> None:
     """Text generation with conversation history example."""
     print("=== Text Generation with History ===")
-    llm = OpenAIProvider(model="gpt-5-nano")
-
     history = [
         {"role": "user", "content": "Hi there! My name is Bob."},
         {
@@ -52,8 +51,6 @@ def text_generation_with_history() -> None:
 def structured_json_example() -> None:
     """Structured output with JSON schema example."""
     print("=== Structured JSON Output ===")
-    llm = OpenAIProvider(model="gpt-5-nano")
-
     schema = {
         "type": "object",
         "properties": {
@@ -74,8 +71,6 @@ def structured_json_example() -> None:
 def structured_model_example() -> None:
     """Structured output with Pydantic model example."""
     print("=== Structured Model Output ===")
-    llm = OpenAIProvider(model="gpt-5-nano")
-
     person = llm.generate_model(
         "Generate a fictional person with their details", Person
     )
@@ -85,10 +80,6 @@ def structured_model_example() -> None:
 def function_calling_example() -> None:
     """Function calling example using functions parameter (auto-generation with enums)."""
     print("=== Function Calling (Auto-Generated Schema with Enums) ===")
-    llm = OpenAIProvider(model="gpt-5-mini")
-
-    from enum import Enum
-    from typing import Literal
 
     class TemperatureUnit(Enum):
         CELSIUS = "celsius"
@@ -124,25 +115,10 @@ def function_calling_example() -> None:
         else:
             return f"{location}: {temp_c}°C"
 
-    def set_priority(
-        task: str, priority: Literal["low", "medium", "high"] = "medium"
-    ) -> str:
-        """Set task priority using literal enum.
-
-        Args:
-            task: Task description
-            priority: Priority level (low, medium, or high)
-
-        Returns:
-            Task with assigned priority
-        """
-        priority_symbols = {"low": "🔵", "medium": "🟡", "high": "🔴"}
-        return f"{priority_symbols[priority]} {task} (Priority: {priority.upper()})"
-
     # Just pass the functions - schemas are auto-generated with enum constraints!
     response = llm.generate_with_tools(
-        prompt="What's the weather in Paris and Tokyo in Fahrenheit? Also set priority for task 'Review code' as high priority.",
-        functions=[get_weather, set_priority],
+        prompt="What's the weather in Paris (in Celsius) and Tokyo (in Fahrenheit)?",
+        functions=[get_weather],
     )
     print(f"Final Response: {response}")
 
@@ -150,7 +126,6 @@ def function_calling_example() -> None:
 def manual_function_calling_example() -> None:
     """Function calling example using manual function_map (original approach)."""
     print("=== Function Calling (Manual Schema) ===")
-    llm = OpenAIProvider(model="gpt-5-mini")
 
     def get_weather(location: str, unit: str = "celsius") -> str:
         """Get weather information for a location in specified temperature unit."""

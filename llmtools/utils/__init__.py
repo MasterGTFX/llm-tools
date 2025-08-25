@@ -1,11 +1,10 @@
 """Shared utilities for diff management, chunking, embeddings, logging, etc."""
 
-from llmtools.utils.diff_manager import apply_llm_diff
+from llmtools.utils.diff_manager import llm_edit
 from llmtools.utils.logging import get_component_logger, setup_logger
 from llmtools.utils.tools import (
     ToolExecutionError,
     ToolTimeoutError,
-    convert_functions_to_map,
     create_function_not_found_message,
     create_tool_error_message,
     execute_tool_function,
@@ -15,12 +14,11 @@ from llmtools.utils.tools import (
 )
 
 __all__ = [
-    "apply_llm_diff",
+    "llm_edit",
     "setup_logger",
     "get_component_logger",
     "ToolExecutionError",
     "ToolTimeoutError",
-    "convert_functions_to_map",
     "execute_tool_function",
     "parse_tool_arguments",
     "format_tool_result",
