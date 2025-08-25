@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from enum import Enum
 from typing import Any, Callable, Optional, get_args, get_origin
 
-from llmtools.utils.logging import setup_logger
+from llmtools.utils.logger_config import setup_logger
 
 
 class ToolExecutionError(Exception):

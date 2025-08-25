@@ -1,7 +1,7 @@
 """Shared utilities for diff management, chunking, embeddings, logging, etc."""
 
 from llmtools.utils.diff_manager import llm_edit
-from llmtools.utils.logging import get_component_logger, setup_logger
+from llmtools.utils.logger_config import get_component_logger, setup_logger
 from llmtools.utils.tools import (
     ToolExecutionError,
     ToolTimeoutError,

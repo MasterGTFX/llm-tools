@@ -5,7 +5,7 @@ from typing import Any, Literal, Optional, Union
 
 from llmtools.config import LLMConfig, SorterConfig
 from llmtools.interfaces.llm import LLMInterface
-from llmtools.utils.logging import setup_logger
+from llmtools.utils.logger_config import setup_logger
 
 
 class Sorter:

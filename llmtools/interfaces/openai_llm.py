@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional, cast, get_args, get_origin
 from dotenv import load_dotenv
 
 from llmtools.interfaces.llm import LLMInterface, T
-from llmtools.utils.logging import setup_logger
+from llmtools.utils.logger_config import setup_logger
 from llmtools.utils.tools import (
     ToolExecutionError,
     create_function_not_found_message,

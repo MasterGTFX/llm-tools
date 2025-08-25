@@ -7,7 +7,7 @@ function calling with automatic retry and flexible matching strategies.
 from typing import Optional
 
 from llmtools.interfaces.llm import LLMInterface
-from llmtools.utils.logging import setup_logger
+from llmtools.utils.logger_config import setup_logger
 
 logger = setup_logger(__name__)
 
