@@ -237,7 +237,18 @@ def _get_parameter_type(annotation: Any) -> dict[str, Any]:
 
         # Handle container types
         if origin is list:
-            return {"type": "array"}
+            # Check if we have type arguments (e.g., List[int])
+            if args:
+                # Get the inner type and create items schema
+                inner_type = args[0]
+                items_schema = _get_parameter_type(inner_type)
+                return {"type": "array", "items": items_schema}
+            else:
+                # Bare list without type arguments
+                return {
+                    "type": "array",
+                    "items": {"type": "string"},
+                }  # Default to string items
         elif origin is dict:
             return {"type": "object"}
 

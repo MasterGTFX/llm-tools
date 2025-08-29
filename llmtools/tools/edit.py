@@ -1,8 +1,4 @@
-"""Diff management utilities for tracking changes in knowledge bases.
-
-Provides functions to apply LLM-generated diffs to text content using structured
-function calling with automatic retry and flexible matching strategies.
-"""
+"""LLM-powered text editing utilities using natural language instructions."""
 
 from typing import Optional
 
@@ -14,7 +10,7 @@ logger = setup_logger(__name__)
 
 def llm_edit(
     original_content: str,
-    prompt: str,
+    instruction: str,
     llm_provider: LLMInterface,
     expect_edit: bool = False,
     system_prompt: Optional[str] = None,
@@ -23,8 +19,8 @@ def llm_edit(
 
     Args:
         original_content: Original content to modify
-        prompt: Instruction for what changes to make
-        llm_provider: LLM interface for generating diffs
+        instruction: Instruction for what changes to make
+        llm_provider: LLM interface for generating edits
         expect_edit: Whether to expect content changes (default: False)
         system_prompt: Custom system prompt (default: use built-in prompt)
 
@@ -37,7 +33,7 @@ def llm_edit(
     logger.info("Starting LLM edit generation and application")
 
     user_prompt = f"""<user_instruction>
-{prompt}
+{instruction}
 </user_instruction>
 
 <text_to_modify>
@@ -48,7 +44,13 @@ def llm_edit(
     failed_attempts = 0
 
     def edit_content_tool(search: str, replace: str, replace_all: bool = False) -> str:
-        """Apply search-replace edit to content."""
+        """Apply search-replace edit to content.
+
+        Args:
+            search: The exact text to find and replace in the content
+            replace: The new text to replace the found text with
+            replace_all: Whether to replace all occurrences (True) or just the first match (False)
+        """
         nonlocal current_content, failed_attempts
 
         if not search.strip():

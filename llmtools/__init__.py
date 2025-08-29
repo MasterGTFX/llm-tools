@@ -1,17 +1,18 @@
 """
-llmtools: A modular set of LLM utilities for personal and project use.
+llmtools: A collection of simple, self-contained LLM functions.
 
-This package provides reusable building blocks for working with LLMs:
-- KnowledgeBase: Build and maintain versioned knowledge bases from documents
-- Sorter: Sort/filter Python lists using LLM instructions
+This package provides simple function-based tools that solve specific problems:
+- llm_filter: Filter lists using natural language instructions
+- llm_sorter: Sort lists using natural language instructions (coming soon)
+- llm_knowledge_base: Build knowledge bases from documents (coming soon)
+- llm_edit: Edit text using LLM instructions (coming soon)
 - Interfaces: Abstract definitions for LLM providers
 - Utils: Shared utilities for diff management, chunking, etc.
 """
 
 from llmtools.interfaces import LLMInterface, OpenAIProvider
-from llmtools.knowledge_base import KnowledgeBase
-from llmtools.sorter import Sorter
+from llmtools.tools import llm_edit, llm_filter
 
-__all__ = ["KnowledgeBase", "Sorter", "LLMInterface", "OpenAIProvider"]
+__all__ = ["llm_filter", "llm_edit", "LLMInterface", "OpenAIProvider"]
 
 __version__ = "0.1.0"

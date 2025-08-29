@@ -7,6 +7,7 @@ Get your API key at: https://platform.openai.com/api-keys
 For OpenRouter usage, set OPENAI_BASE_URL to https://openrouter.ai/api/v1
 and use OpenRouter model names like "openai/gpt-4o" or "anthropic/claude-3-haiku".
 """
+
 from enum import Enum
 from typing import Any
 
@@ -92,7 +93,7 @@ def function_calling_example() -> None:
 
         Args:
             location: Name of the city to get weather for
-            unit: Temperature unit (celsius or fahrenheit)
+            unit: Temperature unit (celsius or fahrenheit) (default celsius)
 
         Returns:
             Weather information as a formatted string

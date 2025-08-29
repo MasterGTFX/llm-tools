@@ -1,6 +1,6 @@
-"""Simple diff manager usage examples."""
-from llmtools import OpenAIProvider
-from llmtools.utils.diff_manager import llm_edit
+"""Simple edit usage examples."""
+
+from llmtools import OpenAIProvider, llm_edit
 
 
 def simple_example() -> None:
@@ -15,7 +15,7 @@ hello()"""
 
     modified = llm_edit(
         original_content=original,
-        prompt="Change the message to say 'Hi there!'",
+        instruction="Change the message to say 'Hi there!'",
         llm_provider=llm,
     )
 
@@ -40,7 +40,7 @@ print(result)"""
 
     modified = llm_edit(
         original_content=original,
-        prompt="Add a subtract method and use it in the example",
+        instruction="Add a subtract method and use it in the example",
         llm_provider=llm,
     )
     print("Modified:\n", modified)
