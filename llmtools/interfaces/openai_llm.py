@@ -2,6 +2,7 @@
 
 import inspect
 import json
+import logging
 import os
 import re
 from enum import Enum
@@ -83,8 +84,8 @@ def convert_functions_to_map(
 
                 parameters["properties"][param_name] = param_schema
 
-                # Add to required if no default value
-                if param.default is param.empty:
+                # Add to required if no default value AND not Optional
+                if param.default is param.empty and not _is_optional_type(param.annotation):
                     parameters["required"].append(param_name)
 
             # Build function schema
@@ -96,6 +97,9 @@ def convert_functions_to_map(
                     "parameters": parameters,
                 },
             }
+
+            # Debug output
+            logging.debug(f"\n=== Schema for {func_name} ===\n{json.dumps(function_schema, indent=2)}\n")
 
             # Map the actual function to its schema
             function_map[func] = function_schema
@@ -155,6 +159,26 @@ def _extract_parameter_descriptions(docstring: str) -> dict[str, str]:
                 param_descriptions[param_name] = description.strip()
 
     return param_descriptions
+
+
+def _is_optional_type(annotation: Any) -> bool:
+    """Check if a type annotation represents an Optional type."""
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+    
+    if origin is None:
+        return False
+    
+    # Check for Union types (including Optional)
+    if (
+        origin is type(None)
+        or (hasattr(origin, "__name__") and origin.__name__ == "UnionType")
+        or origin.__name__ == "Union"
+    ):
+        # Optional[T] is Union[T, None] - check if None is one of the args
+        return type(None) in args
+    
+    return False
 
 
 def _get_parameter_type(annotation: Any) -> dict[str, Any]:
@@ -249,6 +273,33 @@ def _get_parameter_type(annotation: Any) -> dict[str, Any]:
                     "type": "array",
                     "items": {"type": "string"},
                 }  # Default to string items
+        elif origin is tuple:
+            # Handle tuple types like tuple[int, int]
+            if args:
+                # Check if all tuple elements are the same type
+                first_arg_schema = _get_parameter_type(args[0])
+                all_same = all(_get_parameter_type(arg) == first_arg_schema for arg in args)
+                
+                if all_same:
+                    # Homogeneous tuple - use single items schema with length constraints
+                    return {
+                        "type": "array",
+                        "minItems": len(args),
+                        "maxItems": len(args),
+                        "items": first_arg_schema
+                    }
+                else:
+                    # Heterogeneous tuple - fallback to generic array
+                    # OpenAI doesn't support per-position item schemas
+                    return {
+                        "type": "array",
+                        "minItems": len(args),
+                        "maxItems": len(args),
+                        "items": {"type": "string"}  # Default to string for mixed types
+                    }
+            else:
+                # Bare tuple without type arguments
+                return {"type": "array"}
         elif origin is dict:
             return {"type": "object"}
 
@@ -262,7 +313,7 @@ def _get_parameter_type(annotation: Any) -> dict[str, Any]:
     elif annotation is bool:
         return {"type": "boolean"}
     elif annotation is list:
-        return {"type": "array"}
+        return {"type": "array", "items": {"type": "string"}}  # Default to string items
     elif annotation is dict:
         return {"type": "object"}
 
