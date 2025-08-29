@@ -86,6 +86,31 @@ Functions create their own provider instances internally with sensible defaults.
 
 See `examples/` directory for simple function usage examples demonstrating each tool.
 
+## Tool Creation Guidelines
+
+### Prompt Organization
+- Create dedicated prompt files in `llmtools/prompts/[tool_name]_prompts.py`
+- Export `SYSTEM_PROMPT` constant and `user_prompt()` function
+- Users can override by modifying these prompt files directly
+
+### Type Hints & Docstrings
+- Use comprehensive type hints on all parameters and returns
+- Main function must have detailed docstring with Args/Returns/Raises sections
+- Internal tool functions must have docstrings with Args descriptions
+- Use modern syntax: `list[Any]` not `List[Any]`, `LLMInterface` for provider
+
+### Function Architecture
+- Accept `LLMInterface` as parameter for dependency injection
+- Define internal tool functions within main function using `nonlocal` for state
+- Use `llm_provider.generate_with_tools()` with system prompts from prompt files
+- Handle exceptions with clear error messages
+
+### Code Quality
+- Set up logger with `setup_logger(__name__)`
+- Add meaningful logging (info/warning/error levels)
+- Validate inputs and provide graceful fallbacks
+- Follow existing patterns from `filter.py` and `edit.py`
+
 ## Developer Notes
 
 ### Function Development Guidelines

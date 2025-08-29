@@ -12,7 +12,8 @@ This package provides simple function-based tools that solve specific problems:
 
 from llmtools.interfaces import LLMInterface, OpenAIProvider
 from llmtools.tools import llm_edit, llm_filter
+from llmtools import prompts
 
-__all__ = ["llm_filter", "llm_edit", "LLMInterface", "OpenAIProvider"]
+__all__ = ["llm_filter", "llm_edit", "LLMInterface", "OpenAIProvider", "prompts"]
 
 __version__ = "0.1.0"

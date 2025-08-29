@@ -3,6 +3,13 @@
 from typing import Any
 
 from llmtools.interfaces.llm import LLMInterface
+from llmtools.prompts.filter_prompts import (
+    SYSTEM_PROMPT,
+    user_prompt,
+    VERIFICATION_PROMPT,
+    DOUBLE_CHECK_SYSTEM_PROMPT,
+    history_assistant_prompt,
+)
 from llmtools.utils.logger_config import setup_logger
 
 logger = setup_logger(__name__)
@@ -43,15 +50,7 @@ def llm_filter(
     def format_items(item_dict: dict[int, Any]) -> str:
         return "\n".join(f"{i}: {item}" for i, item in item_dict.items())
 
-    user_prompt = f"""<filtering_instruction>
-{instruction}
-</filtering_instruction>
-
-<items_to_filter>
-{format_items(item_map)}
-</items_to_filter>
-
-Use the provided tools to remove items that should be filtered out according to the instruction."""
+    prompt = user_prompt(instruction, format_items(item_map))
 
     def remove_item(item_id: int) -> str:
         """Remove a single item by ID.
@@ -112,20 +111,13 @@ Use the provided tools to remove items that should be filtered out according to 
         logger.info(f"Restored item {item_id}")
         return f"OK: Restored item {item_id}"
 
-    system_prompt = """You are an expert data filter. Use the provided tools to remove items that should be filtered out according to the given instruction.
-
-Guidelines:
-- Use remove_item() to remove individual items by ID
-- Use remove_items() to remove multiple items at once
-- Use restore_item() if you need to undo a removal
-- Only remove items that clearly match the filtering criteria
-- When in doubt, keep the item (don't remove it)"""
+    # Use system prompt from prompts module
 
     try:
         llm_provider.generate_with_tools(
-            prompt=user_prompt,
+            prompt=prompt,
             functions=[remove_item, remove_items, restore_item],
-            system_prompt=system_prompt,
+            system_prompt=SYSTEM_PROMPT,
         )
     except Exception as e:
         logger.error(f"Error during filtering: {e}")
@@ -139,26 +131,31 @@ Guidelines:
         history = [
             {
                 "role": "user",
-                "content": f"Filter these items: {instruction}\n\nItems:\n{format_items(item_map)}",
+                "content": user_prompt(instruction, format_items(item_map)),
             },
             {
                 "role": "assistant",
-                "content": f"I've filtered the items as requested. Here are the results:\n\nREMAINING ITEMS ({len(remaining_items)}):\n{format_items(remaining_items)}\n\nREMOVED ITEMS ({len(removed_items)}):\n{format_items(removed_items)}",
+                "content": history_assistant_prompt(
+                    len(remaining_items),
+                    format_items(remaining_items),
+                    len(removed_items),
+                    format_items(removed_items),
+                ),
             },
         ]
 
-        verification_prompt = "Please double-check this filtering result against the original instruction. Review both the remaining and removed items carefully:\n\n1. Are there any remaining items that should actually be removed?\n2. Are there any removed items that should actually be kept?\n\nMake any necessary corrections using the available tools (only when needed)."
+        # Use verification prompt from prompts module
 
         try:
             llm_provider.generate_with_tools(
-                prompt=verification_prompt,
+                prompt=VERIFICATION_PROMPT,
                 functions=[
                     remove_item,
                     remove_items,
                     restore_item,
                 ],  # All functions available
                 history=history,
-                system_prompt="You are double-checking your filtering work. Review the results carefully and make corrections if needed. Only make changes if you're confident they improve the accuracy of the filtering.",
+                system_prompt=DOUBLE_CHECK_SYSTEM_PROMPT,
             )
         except Exception as e:
             logger.warning(f"Double-check verification failed: {e}")

@@ -2,10 +2,11 @@
 
 from llmtools import OpenAIProvider, llm_edit
 
+llm = OpenAIProvider(model="z-ai/glm-4.5-air", base_url="https://openrouter.ai/api/v1")
+
 
 def simple_example() -> None:
     print("=== Simple Example: Change print message ===")
-    llm = OpenAIProvider(model="z-ai/glm-4.5-air")
 
     original = """def hello():
     print("Hello")
@@ -24,7 +25,6 @@ hello()"""
 
 def complex_example() -> None:
     print("=== Complex Example: Add method and update usage ===")
-    llm = OpenAIProvider(model="z-ai/glm-4.5-air")
 
     original = """class Calculator:
     def add(self, a, b):

@@ -276,7 +276,7 @@ class OpenAIProvider(LLMInterface):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "gpt-5-nano",
+        model: Optional[str] = None,
         base_url: Optional[str] = None,
         **client_kwargs: Any,
     ):
@@ -285,9 +285,11 @@ class OpenAIProvider(LLMInterface):
         Args:
             api_key: OpenAI API key. If not provided, will try to load from
                     OPENAI_API_KEY environment variable
-            model: Model to use (default: gpt-5-nano)
+            model: Model to use. If not provided, will try to load from
+                   OPENAI_DEFAULT_MODEL environment variable
             base_url: Custom base URL (e.g., for OpenRouter). If not provided,
-                     uses OpenAI's default endpoint
+                     will try to load from OPENAI_BASE_URL environment variable,
+                     otherwise uses OpenAI's default endpoint
             **client_kwargs: Additional arguments to pass to OpenAI client
         """
         # Load environment variables from .env file
@@ -300,8 +302,13 @@ class OpenAIProvider(LLMInterface):
                 "variable or pass api_key parameter"
             )
 
-        self.model = model
-        self.base_url = base_url
+        self.model = model or os.getenv("OPENAI_DEFAULT_MODEL")
+        if not self.model:
+            raise ValueError(
+                "Model is required. Set OPENAI_DEFAULT_MODEL environment "
+                "variable or pass model parameter"
+            )
+        self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
 
         # Initialize OpenAI client with optional custom base URL
         client_params = {
@@ -314,10 +321,10 @@ class OpenAIProvider(LLMInterface):
         self.client = OpenAI(**client_params)
 
         # Default configuration
-        self.config = {
-            "temperature": 0.7,
-            "max_tokens": None,
-            "timeout": 30,
+        self.config: dict[str, Any] = {
+            # "temperature":0.7,
+            # "max_tokens": 4096,
+            # "timeout":30,
         }
 
         # Set up logging

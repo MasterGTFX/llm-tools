@@ -3,6 +3,11 @@
 from typing import Optional
 
 from llmtools.interfaces.llm import LLMInterface
+from llmtools.prompts.edit_prompts import (
+    SYSTEM_PROMPT,
+    user_prompt,
+    custom_system_prompt,
+)
 from llmtools.utils.logger_config import setup_logger
 
 logger = setup_logger(__name__)
@@ -32,13 +37,7 @@ def llm_edit(
     """
     logger.info("Starting LLM edit generation and application")
 
-    user_prompt = f"""<user_instruction>
-{instruction}
-</user_instruction>
-
-<text_to_modify>
-{original_content}
-</text_to_modify>"""
+    prompt = user_prompt(instruction, original_content)
 
     current_content = original_content
     failed_attempts = 0
@@ -91,25 +90,14 @@ def llm_edit(
         return message
 
     if system_prompt is None:
-        system_prompt = """You are an expert content editor. Use the edit_content_tool function to modify text content.
-
-Call edit_content_tool multiple times as needed to make all required changes.
-
-Guidelines:
-- Copy search text EXACTLY from original (including whitespace/indentation)
-- Use replace_all=True only when you want to replace ALL occurrences
-- Include enough context to make search text unique when replace_all=False
-- Make one edit at a time and wait for confirmation before proceeding"""
+        final_system_prompt = SYSTEM_PROMPT
     else:
-        system_prompt = (
-            f"You are an expert content editor. Use the edit_content_tool function to modify text content."
-            f"{system_prompt}"
-        )
+        final_system_prompt = custom_system_prompt(system_prompt)
 
     llm_provider.generate_with_tools(
-        prompt=user_prompt,
+        prompt=prompt,
         functions=[edit_content_tool],
-        system_prompt=system_prompt,
+        system_prompt=final_system_prompt,
     )
 
     if expect_edit and current_content == original_content:
