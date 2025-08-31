@@ -9,6 +9,7 @@ Each function is designed to solve a specific problem with a single line of code
 
 ## Available Tools
 
+* **`llm_ask(question, context="")`** - Ask yes/no questions and get boolean answers
 * **`llm_filter(items, instruction)`** - Filter a list based on natural language criteria
 * **`llm_sorter(items, instruction)`** - Sort a list using natural language instructions
 * **`llm_knowledge_base(documents, instruction)`** - Build a knowledge base from documents (TBA)
@@ -30,6 +31,24 @@ Set your `OPENAI_API_KEY` environment variable and you're ready to go.
 ---
 
 ## Usage Examples
+
+### Ask Yes/No Questions
+
+```python
+from llmtools import llm_ask
+
+# Simple questions
+answer = llm_ask("Is 5 greater than 3?")
+print(answer)  # True
+
+# Complex decisions with context
+answer, reasoning = llm_ask(
+    "Should we deploy this feature?", 
+    context="System load: 85%, Tests: passing, Team available",
+    reasoning=True
+)
+print(f"{answer} - {reasoning}")  # True - The system is stable and ready...
+```
 
 ### Filter Lists
 
@@ -89,9 +108,10 @@ llm-tools/
 ├── llmtools/
 │   ├── __init__.py       # Main function exports
 │   ├── tools/            # Self-contained tool functions
+│   │   ├── ask.py        # llm_ask function
 │   │   ├── filter.py     # llm_filter function
 │   │   ├── sorter.py     # llm_sorter function
-│   │   ├── knowledge.py  # llm_knowledge_base function
+│   │   ├── summary.py  # llm_knowledge_base function
 │   │   └── edit.py       # llm_edit function
 │   │
 │   ├── utils/            # Shared utilities

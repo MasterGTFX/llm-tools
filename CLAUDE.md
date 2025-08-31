@@ -35,9 +35,10 @@ pytest tests/test_sorter.py -v
 The project provides simple function-based tools:
 
 ### Available Tools
+- `llm_ask(question, context="")` - Ask yes/no questions and get boolean answers
 - `llm_filter(items, instruction)` - Filter lists using natural language
 - `llm_sorter(items, instruction)` - Sort lists using natural language
-- `llm_knowledge_base(documents, instruction)` - Build knowledge bases from documents
+- `llm_summary(documents, instruction)` - Create iterative summaries from multiple documents
 - `llm_edit(text, instruction)` - Edit text using LLM instructions
 
 ### Key Design Principles
@@ -74,13 +75,19 @@ Functions create their own provider instances internally with sensible defaults.
 - Development tooling (ruff, mypy, pre-commit)
 - Test framework setup
 
-🔄 **Tools to implement**:
+✅ **Tools implemented**:
+- `llm_ask()` function in `tools/ask.py`
 - `llm_filter()` function in `tools/filter.py`
 - `llm_sorter()` function in `tools/sorter.py`
-- `llm_knowledge_base()` function in `tools/knowledge.py`
+- `llm_summary()` function in `tools/summary.py`
 - `llm_edit()` function in `tools/edit.py`
-- Update `__init__.py` to export functions
-- Create simple usage examples
+- All functions exported in `__init__.py`
+- Usage examples created in `examples/`
+
+🔄 **Future enhancements**:
+- Additional tool functions as needed
+- Expanded test coverage
+- Performance optimizations
 
 ## Working Examples
 
@@ -109,7 +116,7 @@ See `examples/` directory for simple function usage examples demonstrating each 
 - Set up logger with `setup_logger(__name__)`
 - Add meaningful logging (info/warning/error levels)
 - Validate inputs and provide graceful fallbacks
-- Follow existing patterns from `filter.py` and `edit.py`
+- Follow existing patterns from `ask.py`, `filter.py`, and `edit.py`
 
 ## Developer Notes
 
