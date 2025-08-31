@@ -183,14 +183,14 @@ def manual_function_calling_example() -> None:
 
 
 if __name__ == "__main__":
-    # basic_text_generation()
-    # print()
-    # text_generation_with_history()
-    # print()
-    # structured_json_example()
-    # print()
-    # structured_model_example()
-    # print()
+    basic_text_generation()
+    print()
+    text_generation_with_history()
+    print()
+    structured_json_example()
+    print()
+    structured_model_example()
+    print()
     function_calling_example()
     print()
     manual_function_calling_example()

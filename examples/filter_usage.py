@@ -7,7 +7,7 @@ llm = OpenAIProvider(model="gpt-5-mini")
 
 def easy_example() -> None:
     """Basic filtering without double-check."""
-    print("=== Easy Example: Filter programming languages ===")
+    print("=== Easy Example: Filter programming languages: commonly used for web development ===")
 
     languages = ["Python", "JavaScript", "Java", "C++", "Ruby", "PHP", "Go", "Rust"]
 
@@ -29,7 +29,7 @@ def easy_example() -> None:
 
 def harder_example() -> None:
     """Complex filtering with double-check verification."""
-    print("=== Harder Example: Filter foods with double-check ===")
+    print("=== Harder Example: Filter foods to keep healty, low-calorie options (with double-check) ===")
 
     foods = [
         "Apple pie with ice cream",
@@ -68,7 +68,7 @@ def harder_example() -> None:
 
 def custom_llm_example() -> None:
     """Example using custom LLM provider."""
-    print("=== Custom LLM Example: Filter movies ===")
+    print("=== Custom LLM Example: Filter movies to keep only family-friendly ===")
 
     # Use a different model
     custom_llm = OpenAIProvider(model="gpt-4o-mini")

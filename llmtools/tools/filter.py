@@ -1,14 +1,14 @@
 """LLM-powered filtering utilities for lists using natural language instructions."""
 
-from typing import Any
+from typing import Any, Union
 
 from llmtools.interfaces.llm import LLMInterface
 from llmtools.prompts.filter_prompts import (
-    SYSTEM_PROMPT,
-    user_prompt,
-    VERIFICATION_PROMPT,
     DOUBLE_CHECK_SYSTEM_PROMPT,
+    SYSTEM_PROMPT,
+    VERIFICATION_PROMPT,
     history_assistant_prompt,
+    user_prompt,
 )
 from llmtools.utils.logger_config import setup_logger
 
@@ -19,7 +19,7 @@ def llm_filter(
     items: list[Any],
     instruction: str,
     llm_provider: LLMInterface,
-    double_check: bool = False,
+    double_check: Union[bool, LLMInterface, None] = False,
 ) -> list[Any]:
     """Filter a list of items using natural language instructions.
 
@@ -27,7 +27,8 @@ def llm_filter(
         items: List of items to filter
         instruction: Natural language instruction for filtering
         llm_provider: LLM interface for generating filtering decisions
-        double_check: Whether to verify final results with LLM (default: False)
+        double_check: Verification mode - False: no verification, True: use primary provider,
+                     LLMInterface: use specified provider for verification (default: False)
 
     Returns:
         Filtered list of items
@@ -52,38 +53,31 @@ def llm_filter(
 
     prompt = user_prompt(instruction, format_items(item_map))
 
-    def remove_item(item_id: int) -> str:
-        """Remove a single item by ID.
-
-        Args:
-            item_id: The numeric ID of the item to remove from the list
-        """
-        nonlocal remaining_items, removed_items
-
-        if item_id not in remaining_items:
-            if item_id in removed_items:
-                return f"ERROR: Item {item_id} already removed"
-            else:
-                return f"ERROR: Item ID {item_id} does not exist"
-
-        removed_items[item_id] = remaining_items.pop(item_id)
-        logger.info(f"Removed item {item_id}")
-        return f"OK: Removed item {item_id}"
-
     def remove_items(item_ids: list[int]) -> str:
         """Remove multiple items by their IDs.
 
         Args:
             item_ids: List of numeric IDs of items to remove from the list
         """
+        nonlocal remaining_items, removed_items
+        
         results = []
         success_count = 0
 
         for item_id in item_ids:
-            result = remove_item(item_id)
-            results.append(result)
-            if result.startswith("OK:"):
+            if item_id not in remaining_items:
+                if item_id in removed_items:
+                    result = f"ERROR: Item {item_id} already removed: {removed_items[item_id]}"
+                else:
+                    result = f"ERROR: Item ID {item_id} does not exist"
+            else:
+                item_content = remaining_items[item_id]
+                removed_items[item_id] = remaining_items.pop(item_id)
+                logger.info(f"Removed item {item_id}: {item_content}")
+                result = f"OK: Removed item {item_id}: {item_content}"
                 success_count += 1
+            
+            results.append(result)
 
         summary = (
             f"Processed {len(item_ids)} items: {success_count} removed successfully"
@@ -93,30 +87,46 @@ def llm_filter(
 
         return f"{summary}\n" + "\n".join(results)
 
-    def restore_item(item_id: int) -> str:
-        """Restore a previously removed item back to the filtered list.
+    def restore_items(item_ids: list[int]) -> str:
+        """Restore previously removed items back to the filtered list.
 
         Args:
-            item_id: The numeric ID of the previously removed item to restore
+            item_ids: List of numeric IDs of previously removed items to restore
         """
         nonlocal remaining_items, removed_items
+        
+        results = []
+        success_count = 0
 
-        if item_id not in removed_items:
-            if item_id in remaining_items:
-                return f"ERROR: Item {item_id} is not removed"
+        for item_id in item_ids:
+            if item_id not in removed_items:
+                if item_id in remaining_items:
+                    result = f"ERROR: Item {item_id} is not removed: {remaining_items[item_id]}"
+                else:
+                    result = f"ERROR: Item ID {item_id} does not exist"
             else:
-                return f"ERROR: Item ID {item_id} does not exist"
+                item_content = removed_items[item_id]
+                remaining_items[item_id] = removed_items.pop(item_id)
+                logger.info(f"Restored item {item_id}: {item_content}")
+                result = f"OK: Restored item {item_id}: {item_content}"
+                success_count += 1
+            
+            results.append(result)
 
-        remaining_items[item_id] = removed_items.pop(item_id)
-        logger.info(f"Restored item {item_id}")
-        return f"OK: Restored item {item_id}"
+        summary = (
+            f"Processed {len(item_ids)} items: {success_count} restored successfully"
+        )
+        if success_count < len(item_ids):
+            summary += f", {len(item_ids) - success_count} failed"
+
+        return f"{summary}\n" + "\n".join(results)
 
     # Use system prompt from prompts module
 
     try:
         llm_provider.generate_with_tools(
             prompt=prompt,
-            functions=[remove_item, remove_items, restore_item],
+            functions=[remove_items, restore_items],
             system_prompt=SYSTEM_PROMPT,
         )
     except Exception as e:
@@ -126,6 +136,15 @@ def llm_filter(
     # Double-check verification if requested
     if double_check and (removed_items or len(remaining_items) != len(items)):
         logger.info("Performing double-check verification")
+
+        # Determine which provider to use for verification
+        if double_check is True:
+            verification_provider = llm_provider
+        elif isinstance(double_check, LLMInterface):
+            verification_provider = double_check
+        else:
+            # This shouldn't happen given the type hints, but handle gracefully
+            verification_provider = llm_provider
 
         # Create conversation history from the original filtering
         history = [
@@ -147,15 +166,15 @@ def llm_filter(
         # Use verification prompt from prompts module
 
         try:
-            llm_provider.generate_with_tools(
+            verification_provider.generate_with_tools(
                 prompt=VERIFICATION_PROMPT,
                 functions=[
-                    remove_item,
                     remove_items,
-                    restore_item,
+                    restore_items,
                 ],  # All functions available
                 history=history,
                 system_prompt=DOUBLE_CHECK_SYSTEM_PROMPT,
+                tool_choice="auto"
             )
         except Exception as e:
             logger.warning(f"Double-check verification failed: {e}")

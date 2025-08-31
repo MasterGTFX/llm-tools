@@ -2,7 +2,9 @@
 
 from llmtools import OpenAIProvider, llm_sorter
 
-llm = OpenAIProvider(model="z-ai/glm-4.5-air", base_url="https://openrouter.ai/api/v1")
+llm = OpenAIProvider(model="gpt-5-nano")
+smarter_llm = OpenAIProvider(model="gpt-5-mini")
+
 
 def easy_example() -> None:
     """Basic sorting - objective ordering that's easy to verify."""
@@ -61,7 +63,7 @@ def harder_example() -> None:
         items=activities,
         instruction="Sort these activities by how effective they are for stress relief and mental wellness, most effective first",
         llm_provider=llm,
-        double_check=True,  # Enable verification for subjective reasoning
+        double_check=smarter_llm,  # Use a smarter model for verification
     )
 
     print(f"\nSorted by stress relief effectiveness ({len(sorted_activities)} items):")

@@ -3,9 +3,8 @@
 SYSTEM_PROMPT = """You are an expert data filter. Use the provided tools to remove items that should be filtered out according to the given instruction.
 
 Guidelines:
-- Use remove_item() to remove individual items by ID
-- Use remove_items() to remove multiple items at once
-- Use restore_item() if you need to undo a removal
+- Use remove_items() to remove items by ID (can be single item or multiple items)
+- Use restore_items() if you need to undo removals
 - Only remove items that clearly match the filtering criteria
 - When in doubt, keep the item (don't remove it)"""
 
@@ -31,7 +30,15 @@ VERIFICATION_PROMPT = """Please double-check this filtering result against the o
 Make any necessary corrections using the available tools (only when needed)."""
 
 
-DOUBLE_CHECK_SYSTEM_PROMPT = """You are double-checking your filtering work. Review the results carefully and make corrections if needed. Only make changes if you're confident they improve the accuracy of the filtering."""
+DOUBLE_CHECK_SYSTEM_PROMPT = """You are performing quality assurance on a completed filtering task. Your role is to verify accuracy and make corrections only when necessary.
+
+Key principles:
+- The filtering has already been completed - you are reviewing, not re-doing
+- Only make changes if you identify clear, objective errors in the filtering decisions
+- If most items are correctly filtered but a few specific ones are wrong, fix just those items
+- If the filtering looks good, don't make any changes at all
+
+Your job is quality assurance, not re-implementation. Be conservative and surgical in your corrections."""
 
 
 def history_assistant_prompt(
