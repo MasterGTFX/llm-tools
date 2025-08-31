@@ -622,6 +622,7 @@ class OpenAIProvider(LLMInterface):
         max_tool_iterations: int = 10,
         handle_tool_errors: bool = True,
         tool_timeout: Optional[float] = None,
+        tool_choice: str = "required",
         **kwargs: Any,
     ) -> str:
         """Generate response with access to function/tool calling. Either functions or function_map (or both) must be provided.
@@ -636,6 +637,7 @@ class OpenAIProvider(LLMInterface):
             max_tool_iterations: Maximum number of tool calling rounds to prevent infinite loops
             handle_tool_errors: Whether to handle tool execution errors gracefully by informing the LLM
             tool_timeout: Optional timeout in seconds for individual tool execution
+            tool_choice: Tool choice strategy - "required" forces tool use, "auto" allows model to decide
             **kwargs: Additional provider-specific parameters
 
         Returns:
@@ -675,6 +677,7 @@ class OpenAIProvider(LLMInterface):
             max_tool_iterations,
             handle_tool_errors,
             tool_timeout,
+            tool_choice,
             **kwargs,
         )
 
@@ -773,9 +776,10 @@ class OpenAIProvider(LLMInterface):
         tool_functions: dict[str, Callable[..., Any]],
         system_prompt: Optional[str] = None,
         history: Optional[list[dict[str, str]]] = None,
-        max_tool_iterations: int = 10,
+        max_tool_iterations: int = 20,
         handle_tool_errors: bool = True,
         tool_timeout: Optional[float] = None,
+        tool_choice: str = "required",
         **kwargs: Any,
     ) -> str:
         """Execute tools automatically and return final text response.
@@ -790,7 +794,7 @@ class OpenAIProvider(LLMInterface):
         self.logger.debug(f"Max iterations: {max_tool_iterations}")
         self.logger.debug(f"Available functions: {list(tool_functions.keys())}")
 
-        # Merge config with kwargs
+        # Merge config with kwargs (tool_choice will be set dynamically in the loop)
         request_params = {
             "model": self.model,
             "tools": tools,
@@ -804,12 +808,24 @@ class OpenAIProvider(LLMInterface):
                 f"Tool execution iteration {iteration}/{max_tool_iterations}"
             )
 
+            # Dynamic tool_choice: required for first iteration, auto for subsequent
+            current_tool_choice = tool_choice if iteration == 1 else "auto"
+            current_request_params = {
+                **request_params,
+                "tool_choice": current_tool_choice,
+            }
+            
+            self.logger.debug(f"Using tool_choice: {current_tool_choice}")
+
             try:
                 # Make API call
                 response = self.client.chat.completions.create(
-                    messages=cast(Any, messages), **request_params
+                    messages=cast(Any, messages), **current_request_params
                 )
                 message = response.choices[0].message
+                if message.content:
+                    # log the message
+                    self.logger.info(f"LLM response: {str(message.content)[:500]}...")
 
                 # Log token usage
                 if hasattr(response, "usage") and response.usage:

@@ -1,149 +1,119 @@
-"""
-Basic usage examples for llmtools components.
+# -*- coding: utf-8 -*-
+"""Book List Manager - Chaining sort, filter, and edit operations."""
 
-This script demonstrates how to use the KnowledgeBase and Sorter components
-with mock LLM providers (since real LLM providers require API keys).
-"""
+from llmtools import OpenAIProvider, llm_sorter, llm_filter, llm_edit
 
-from pathlib import Path
-
-from llmtools import KnowledgeBase, Sorter
+llm = OpenAIProvider(model="google/gemini-2.5-flash", base_url="https://openrouter.ai/api/v1")
 
 
-def main() -> None:
-    """Run basic usage examples."""
-    print("=== LLMTools Basic Usage Examples ===\n")
-
-    # Initialize mock LLM provider
-    from typing import Any, Callable, Optional
-
-    from llmtools.interfaces.llm import LLMInterface
-
-    class MockLLMProvider(LLMInterface):
-        def generate(
-            self,
-            prompt: str,
-            system_prompt: Optional[str] = None,
-            history: Optional[list[dict[str, str]]] = None,
-            **kwargs: Any,
-        ) -> str:
-            return "Mock response"
-
-        def generate_structured(
-            self,
-            prompt: str,
-            schema: dict[str, Any],
-            system_prompt: Optional[str] = None,
-            history: Optional[list[dict[str, str]]] = None,
-            **kwargs: Any,
-        ) -> dict[str, Any]:
-            # Return a more realistic response based on the schema
-            properties = schema.get("properties", {})
-            if "sorted_items" in properties:
-                # For Sorter strict mode
-                return {
-                    "sorted_items": ["apple", "banana", "orange", "pear"],
-                    "reasoning": "Sorted alphabetically",
-                }
-            elif "filtered_items" in properties:
-                # For Sorter filter mode
-                return {
-                    "filtered_items": ["apple", "banana"],
-                    "reasoning": "Filtered items containing 'a'",
-                }
-            return {"mock": "structured_response"}
-
-        def generate_model(
-            self,
-            prompt: str,
-            model_class: type,
-            system_prompt: Optional[str] = None,
-            history: Optional[list[dict[str, str]]] = None,
-            **kwargs: Any,
-        ) -> Any:
-            return model_class()
-
-        def generate_with_tools(
-            self,
-            prompt: str,
-            functions: Optional[list[Callable[..., Any]]] = None,
-            function_map: Optional[dict[Callable[..., Any], dict[str, Any]]] = None,
-            system_prompt: Optional[str] = None,
-            history: Optional[list[dict[str, str]]] = None,
-            max_tool_iterations: int = 10,
-            handle_tool_errors: bool = True,
-            tool_timeout: Optional[float] = None,
-            **kwargs: Any,
-        ) -> str:
-            return "Mock tool response"
-
-        def configure(self, config: dict[str, Any]) -> None:
-            pass
-
-    llm = MockLLMProvider()
-
-    # Example 1: Sorter in strict mode
-    print("1. Sorter - Strict Mode (reorder all items)")
-    sorter = Sorter(mode="strict", llm_provider=llm)
-    fruits = ["banana", "apple", "orange", "pear"]
-
-    sorted_fruits = sorter.sort(fruits, "Sort fruits alphabetically")
-    print(f"Original: {fruits}")
-    print(f"Sorted:   {sorted_fruits}")
-    print()
-
-    # Example 2: Sorter in filter mode
-    print("2. Sorter - Filter Mode (subset only)")
-    filterer = Sorter(mode="filter", llm_provider=llm)
-
-    filtered_fruits = filterer.sort(fruits, "Keep only fruits with 'a'")
-    print(f"Original: {fruits}")
-    print(f"Filtered: {filtered_fruits}")
-    print()
-
-    # Example 3: Knowledge Base
-    print("3. Knowledge Base - Document Processing")
-
-    # Create temporary documents
-    temp_dir = Path("temp_examples")
-    temp_dir.mkdir(exist_ok=True)
-
-    doc1 = temp_dir / "doc1.txt"
-    doc2 = temp_dir / "doc2.txt"
-
-    doc1.write_text(
-        "Python is a high-level programming language known for its simplicity and readability."
-    )
-    doc2.write_text(
-        "Machine learning is a subset of AI that enables computers to learn from data."
-    )
-
-    # Initialize knowledge base
-    kb = KnowledgeBase(
-        config={"provider": "mock"},
-        instruction="Create a comprehensive knowledge base about programming and AI",
-        output_dir=temp_dir / "kb_output",
+def book_list_manager_example() -> None:
+    """Example: Book List Manager - Chain sorting, filtering, and editing."""
+    print("=== Book List Manager: Chain Operations Example ===")
+    
+    # Initial book list with mixed formats and genres
+    books = [
+        "the martian - andy weir",
+        "to kill a mockingbird - harper lee", 
+        "dune - frank herbert",
+        "1984 - george orwell",
+        "the great gatsby - f. scott fitzgerald",
+        "foundation - isaac asimov",
+        "brave new world - aldous huxley",
+        "the hitchhiker's guide to the galaxy - douglas adams",
+        "pride and prejudice - jane austen",
+        "neuromancer - william gibson",
+        "fahrenheit 451 - ray bradbury",
+        "the catcher in the rye - j.d. salinger"
+    ]
+    
+    print("Original book list:")
+    for i, book in enumerate(books):
+        print(f"  {i+1}: {book}")
+    
+    # Step 1: Sort by popularity
+    print("\nStep 1: Sorting by popularity...")
+    sorted_books = llm_sorter(
+        items=books,
+        instruction="Sort this list of books by popularity, most popular first",
         llm_provider=llm,
     )
+    
+    print("Books sorted by popularity:")
+    for i, book in enumerate(sorted_books):
+        print(f"  {i+1}: {book}")
+    
+    # Step 2: Filter to only science fiction books
+    print("\nStep 2: Filtering for science fiction books...")
+    sci_fi_books = llm_filter(
+        items=sorted_books,
+        instruction="Keep only science fiction books",
+        llm_provider=llm,
+    )
+    
+    print("Science fiction books only:")
+    for i, book in enumerate(sci_fi_books):
+        print(f"  {i+1}: {book}")
+    
+    # Step 3: Edit to improve formatting and add descriptions
+    print("\nStep 3: Reformatting titles and adding descriptions...")
+    
+    # Convert list to formatted string for editing
+    books_text = "\n".join([f"{i+1}. {book}" for i, book in enumerate(sci_fi_books)])
+    
+    edited_books = llm_edit(
+        original_content=books_text,
+        instruction="Rewrite each book entry to be in proper title case and add a short one-sentence description of the book after each title. Keep the author format.",
+        llm_provider=llm,
+    )
+    
+    print("Final formatted book list with descriptions:")
+    print(edited_books)
 
-    # Add documents and process
-    kb.add_documents([str(doc1), str(doc2)])
-    versions = kb.process()
 
-    print(f"Created {len(versions)} knowledge base version(s)")
-    print(f"Knowledge base saved to: {temp_dir / 'kb_output'}")
-
-    # Query the knowledge base
-    response = kb.query("What topics are covered in the knowledge base?")
-    print(f"Query response: {response}")
-
-    # Cleanup
-    import shutil
-
-    shutil.rmtree(temp_dir, ignore_errors=True)
-
-    print("\n=== Examples completed successfully! ===")
+def shopping_list_helper() -> None:
+    """Shopping List Helper - Simple chain without verbose output."""
+    print("=== Shopping List Helper ===")
+    
+    # Initial shopping list with mixed items and prices
+    items = [
+        "bananas - $2.99",
+        "laptop - $899.99", 
+        "apples - $1.49",
+        "chicken breast - $8.99",
+        "carrots - $1.25",
+        "headphones - $79.99",
+        "spinach - $3.49",
+        "coffee - $12.99",
+        "tomatoes - $2.79",
+        "phone case - $15.99",
+        "broccoli - $2.89",
+        "pasta - $1.99"
+    ]
+    
+    print("Original items:")
+    for item in items:
+        print(f"  - {item}")
+    
+    # Chain operations: sort by healthiness, filter fruits/vegetables, format with emojis
+    formatted_list = llm_edit(
+        original_content="\n".join(llm_filter(
+            items=llm_sorter(
+                items=items,
+                instruction="Sort the items by sugar content, lowest first",
+                llm_provider=llm,
+            ),
+            instruction="Keep only items that are fruits or vegetables",
+            llm_provider=llm,
+        )),
+        instruction="Format them into a nice shopping list with bullet points and emoji icons",
+        llm_provider=llm,
+    )
+    
+    print("\nFinal shopping list:")
+    print(formatted_list)
 
 
 if __name__ == "__main__":
-    main()
+    # book_list_manager_example()
+    print("\n" + "=" * 50 + "\n")
+    shopping_list_helper()
