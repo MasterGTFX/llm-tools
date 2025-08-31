@@ -89,6 +89,26 @@ def llm_edit(
         logger.info(f"Edit applied: {message}")
         return message
 
+    def create_content_tool(content: str) -> str:
+        """Create new content when starting from empty document.
+
+        Args:
+            content: The complete content to create
+        """
+        nonlocal current_content, failed_attempts
+        
+        # Safety check: warn if overwriting non-empty content
+        if current_content.strip() and failed_attempts == 0:
+            failed_attempts += 1
+            message = f"WARNING: Document contains {len(current_content)} characters of existing content. Using create_content_tool will overwrite ALL existing content. If you want to overwrite, call create_content_tool again. If you want to modify existing content, use edit_content_tool instead."
+            logger.warning("Create content tool: warning about overwriting content")
+            return message
+        
+        current_content = content
+        failed_attempts = 0
+        logger.info(f"Content created: {len(content)} characters")
+        return "OK: Content created successfully"
+
     if system_prompt is None:
         final_system_prompt = SYSTEM_PROMPT
     else:
@@ -96,7 +116,7 @@ def llm_edit(
 
     llm_provider.generate_with_tools(
         prompt=prompt,
-        functions=[edit_content_tool],
+        functions=[edit_content_tool, create_content_tool],
         system_prompt=final_system_prompt,
     )
 

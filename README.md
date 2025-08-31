@@ -10,7 +10,7 @@ Each function is designed to solve a specific problem with a single line of code
 ## Available Tools
 
 * **`llm_filter(items, instruction)`** - Filter a list based on natural language criteria
-* **`llm_sorter(items, instruction)`** - Sort a list using natural language instructions (TBA)
+* **`llm_sorter(items, instruction)`** - Sort a list using natural language instructions
 * **`llm_knowledge_base(documents, instruction)`** - Build a knowledge base from documents (TBA)
 * **`llm_edit(text, instruction)`** - Edit or modify text content using LLM instructions
 
