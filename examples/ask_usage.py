@@ -1,11 +1,11 @@
 """Simple ask usage examples."""
 
-import llmtools
-from llmtools import llm_ask
+import vibetools
+from vibetools import ai_ask
 
 # Global configuration
-llmtools.configure(model="gpt-4o-mini", temperature=0.7)
-llm = llmtools.get_provider(llmtools.OpenAIProvider)
+vibetools.configure(model="gpt-4o-mini", temperature=0.7)
+llm = vibetools.get_provider(vibetools.OpenAIProvider)
 
 
 def simple_example() -> None:
@@ -14,7 +14,7 @@ def simple_example() -> None:
     question = "Is 5 greater than 3?"
     print(f"Q: {question}")
 
-    answer = llm_ask(question, llm)
+    answer = ai_ask(question, llm)
     print(f"A: {answer}")
 
 
@@ -26,7 +26,7 @@ def complex_example() -> None:
     print(f"Q: {question}")
     print(f"Context: {context}")
 
-    answer, reasoning = llm_ask(question, llm, context=context, reasoning=True)
+    answer, reasoning = ai_ask(question, llm, context=context, reasoning=True)
     print(f"A: {answer}")
     print(f"Reasoning: {reasoning}")
 

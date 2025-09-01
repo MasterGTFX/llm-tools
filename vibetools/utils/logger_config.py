@@ -1,4 +1,4 @@
-"""Centralized logging utilities for llmtools components."""
+"""Centralized logging utilities for vibetools components."""
 
 import logging
 import os
@@ -12,7 +12,7 @@ def setup_logger(
     format_string: Optional[str] = None,
     handler_type: str = "console",
 ) -> logging.Logger:
-    """Set up a logger for llmtools components.
+    """Set up a logger for vibetools components.
 
     Args:
         name: Logger name (usually __name__ of the module)
@@ -48,7 +48,7 @@ def setup_logger(
 
     # Add file handler if requested
     if handler_type in ("file", "both"):
-        log_file = os.getenv("LLMTOOLS_LOG_FILE", "llmtools.log")
+        log_file = os.getenv("VIBETOOLS_LOG_FILE", "vibetools.log")
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(log_level)
         file_handler.setFormatter(formatter)
@@ -71,7 +71,7 @@ def _get_log_level(level: Optional[str]) -> int:
     """
     # Check environment variable first
     if level is None:
-        level = os.getenv("LLMTOOLS_LOG_LEVEL", "CRITICAL")
+        level = os.getenv("VIBETOOLS_LOG_LEVEL", "CRITICAL")
 
     level_map = {
         "DEBUG": logging.DEBUG,
@@ -91,7 +91,7 @@ def _get_default_format() -> str:
         Format string for log messages
     """
     # Check for custom format from environment
-    custom_format = os.getenv("LLMTOOLS_LOG_FORMAT")
+    custom_format = os.getenv("VIBETOOLS_LOG_FORMAT")
     if custom_format:
         return custom_format
 
@@ -100,7 +100,7 @@ def _get_default_format() -> str:
 
 
 def get_component_logger(component_name: str) -> logging.Logger:
-    """Get a logger for a specific llmtools component.
+    """Get a logger for a specific vibetools component.
 
     Args:
         component_name: Name of the component (e.g., 'knowledge_base', 'sorter')
@@ -108,5 +108,5 @@ def get_component_logger(component_name: str) -> logging.Logger:
     Returns:
         Configured logger for the component
     """
-    logger_name = f"llmtools.{component_name}"
+    logger_name = f"vibetools.{component_name}"
     return setup_logger(logger_name)

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a collection of simple, self-contained LLM functions that solve specific problems with a single function call. Each function uses OpenAI by default and requires no configuration or setup.
+This is a collection of simple, self-contained AI functions that solve specific problems with a single function call. Each function uses OpenAI by default and requires no configuration or setup.
 
 ## Development Setup
 
@@ -18,10 +18,10 @@ pip install -e ".[dev]"
 pre-commit install
 
 # Run all quality checks
-ruff check llmtools/ tests/        # Linting
-ruff format llmtools/ tests/       # Formatting
-mypy llmtools/ --strict           # Type checking
-pytest tests/ -v --cov=llmtools  # Testing with coverage
+ruff check vibetools/ tests/        # Linting
+ruff format vibetools/ tests/       # Formatting
+mypy vibetools/ --strict           # Type checking
+pytest tests/ -v --cov=vibetools  # Testing with coverage
 
 # Run tests only
 pytest tests/
@@ -35,11 +35,11 @@ pytest tests/test_sorter.py -v
 The project provides simple function-based tools:
 
 ### Available Tools
-- `llm_ask(question, context="")` - Ask yes/no questions and get boolean answers
-- `llm_filter(items, instruction)` - Filter lists using natural language
-- `llm_sorter(items, instruction)` - Sort lists using natural language
-- `llm_summary(documents, instruction)` - Create iterative summaries from multiple documents
-- `llm_edit(text, instruction)` - Edit text using LLM instructions
+- `ai_ask(question, context="")` - Ask yes/no questions and get boolean answers
+- `ai_filter(items, instruction)` - Filter lists using natural language
+- `ai_sort(items, instruction)` - Sort lists using natural language
+- `ai_summary(documents, instruction)` - Create iterative summaries from multiple documents
+- `ai_edit(text, instruction)` - Edit text using AI instructions
 
 ### Key Design Principles
 - **Function-based**: Everything is a simple function call
@@ -59,7 +59,7 @@ Each tool function follows this pattern:
 
 ## LLM Integration
 
-All functions use the existing `OpenAIProvider` from `llmtools.interfaces.openai_llm`:
+All functions use the existing `OpenAIProvider` from `vibetools.interfaces.openai_llm`:
 - **Default provider**: Creates OpenAI client automatically
 - **Environment-based**: Uses `OPENAI_API_KEY` from environment
 - **Structured output**: Leverages `generate_structured()` method
@@ -76,11 +76,11 @@ Functions create their own provider instances internally with sensible defaults.
 - Test framework setup
 
 ✅ **Tools implemented**:
-- `llm_ask()` function in `tools/ask.py`
-- `llm_filter()` function in `tools/filter.py`
-- `llm_sorter()` function in `tools/sorter.py`
-- `llm_summary()` function in `tools/summary.py`
-- `llm_edit()` function in `tools/edit.py`
+- `ai_ask()` function in `tools/ask.py`
+- `ai_filter()` function in `tools/filter.py`
+- `ai_sort()` function in `tools/sorter.py`
+- `ai_summary()` function in `tools/summary.py`
+- `ai_edit()` function in `tools/edit.py`
 - All functions exported in `__init__.py`
 - Usage examples created in `examples/`
 
@@ -96,7 +96,7 @@ See `examples/` directory for simple function usage examples demonstrating each 
 ## Tool Creation Guidelines
 
 ### Prompt Organization
-- Create dedicated prompt files in `llmtools/prompts/[tool_name]_prompts.py`
+- Create dedicated prompt files in `vibetools/prompts/[tool_name]_prompts.py`
 - Export `SYSTEM_PROMPT` constant and `user_prompt()` function
 - Users can override by modifying these prompt files directly
 

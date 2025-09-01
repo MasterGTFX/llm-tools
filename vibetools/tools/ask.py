@@ -1,26 +1,26 @@
-"""LLM-powered yes/no question answering using natural language instructions."""
+"""AI-powered yes/no question answering using natural language instructions."""
 
 from typing import Optional, Union
 
-from llmtools.interfaces.llm import LLMInterface
-from llmtools.defaults import get_default_provider
-from llmtools.prompts.ask_prompts import (
+from vibetools.interfaces.llm import LLMInterface
+from vibetools.defaults import get_default_provider
+from vibetools.prompts.ask_prompts import (
     SYSTEM_PROMPT,
     SYSTEM_PROMPT_WITH_REASONING,
     user_prompt,
 )
-from llmtools.utils.logger_config import setup_logger
+from vibetools.utils.logger_config import setup_logger
 
 logger = setup_logger(__name__)
 
 
-def llm_ask(
+def ai_ask(
     question: str,
     llm_provider: Optional[LLMInterface] = None,
     context: str = "",
     reasoning: bool = False,
 ) -> Union[bool, tuple[bool, str]]:
-    """Ask the LLM a yes/no question and get a boolean answer.
+    """Ask the AI a yes/no question and get a boolean answer.
 
     Args:
         question: The yes/no question to ask
@@ -32,12 +32,12 @@ def llm_ask(
         Boolean answer if reasoning=False, or (bool, str) tuple if reasoning=True
 
     Raises:
-        ValueError: If the LLM cannot provide a clear yes/no answer
+        ValueError: If the AI cannot provide a clear yes/no answer
     """
     # Use default provider if none provided
     provider = llm_provider or get_default_provider()
     
-    logger.info(f"Starting LLM ask: {question[:50]}...")
+    logger.info(f"Starting AI ask: {question[:50]}...")
 
     prompt = user_prompt(question, context)
     answer_given = False
@@ -58,7 +58,7 @@ def llm_ask(
         answer_given = True
         final_answer = answer
         answer_text = "yes" if answer else "no"
-        logger.info(f"LLM answered: {answer_text}")
+        logger.info(f"AI answered: {answer_text}")
         return f"OK: Answered {answer_text}"
 
     # Choose system prompt based on reasoning requirement
@@ -75,13 +75,13 @@ def llm_ask(
         raise ValueError(f"Failed to get answer: {e}") from e
 
     if not answer_given or final_answer is None:
-        logger.error("LLM did not provide an answer")
-        raise ValueError("LLM failed to provide a yes/no answer")
+        logger.error("AI did not provide an answer")
+        raise ValueError("AI failed to provide a yes/no answer")
 
     if reasoning:
         reasoning_text = response.strip() if response else ""
-        logger.info(f"LLM ask completed with reasoning: {len(reasoning_text)} chars")
+        logger.info(f"AI ask completed with reasoning: {len(reasoning_text)} chars")
         return (final_answer, reasoning_text)
     else:
-        logger.info("LLM ask completed")
+        logger.info("AI ask completed")
         return final_answer

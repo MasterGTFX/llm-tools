@@ -1,22 +1,22 @@
-"""LLM-powered sorting utilities for lists using natural language instructions."""
+"""AI-powered sorting utilities for lists using natural language instructions."""
 
 from typing import Any, Optional, Union
 
-from llmtools.interfaces.llm import LLMInterface
-from llmtools.defaults import get_default_provider
-from llmtools.prompts.sorter_prompts import (
+from vibetools.interfaces.llm import LLMInterface
+from vibetools.defaults import get_default_provider
+from vibetools.prompts.sorter_prompts import (
     DOUBLE_CHECK_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
     VERIFICATION_PROMPT,
     history_assistant_prompt,
     user_prompt,
 )
-from llmtools.utils.logger_config import setup_logger
+from vibetools.utils.logger_config import setup_logger
 
 logger = setup_logger(__name__)
 
 
-def llm_sorter(
+def ai_sort(
     items: list[Any],
     instruction: str,
     llm_provider: Optional[LLMInterface] = None,
@@ -40,7 +40,7 @@ def llm_sorter(
     # Use default provider if none provided
     provider = llm_provider or get_default_provider()
     
-    logger.info(f"Starting LLM sorter with {len(items)} items")
+    logger.info(f"Starting AI sort with {len(items)} items")
 
     if not items:
         logger.info("Empty items list, returning empty list")
@@ -50,7 +50,7 @@ def llm_sorter(
     item_map = dict(enumerate(items))
     current_order = list(range(len(items)))
 
-    # Format items for LLM presentation
+    # Format items for AI presentation
     def format_items_with_order() -> str:
         return "\n".join(f"{item_id}: {item_map[item_id]}" for item_id in current_order)
 
@@ -279,7 +279,7 @@ def llm_sorter(
     # Return sorted results maintaining original order of IDs but in new sequence
     result = [item_map[item_id] for item_id in current_order]
     logger.info(
-        f"LLM sorter completed: {len(result)} items sorted from original {len(items)}"
+        f"AI sort completed: {len(result)} items sorted from original {len(items)}"
     )
 
     return result

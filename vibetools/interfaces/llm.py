@@ -12,7 +12,7 @@ class LLMInterface(ABC):
     """Abstract base class for LLM providers.
 
     This interface defines the minimal contract that LLM providers must implement
-    to work with llmtools components like KnowledgeBase and Sorter.
+    to work with vibetools components like KnowledgeBase and Sorter.
     """
 
     @abstractmethod

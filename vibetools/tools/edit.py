@@ -1,27 +1,27 @@
-"""LLM-powered text editing utilities using natural language instructions."""
+"""AI-powered text editing utilities using natural language instructions."""
 
 from typing import Optional
 
-from llmtools.interfaces.llm import LLMInterface
-from llmtools.defaults import get_default_provider
-from llmtools.prompts.edit_prompts import (
+from vibetools.interfaces.llm import LLMInterface
+from vibetools.defaults import get_default_provider
+from vibetools.prompts.edit_prompts import (
     SYSTEM_PROMPT,
     user_prompt,
     custom_system_prompt,
 )
-from llmtools.utils.logger_config import setup_logger
+from vibetools.utils.logger_config import setup_logger
 
 logger = setup_logger(__name__)
 
 
-def llm_edit(
+def ai_edit(
     original_content: str,
     instruction: str,
     llm_provider: Optional[LLMInterface] = None,
     expect_edit: bool = False,
     system_prompt: Optional[str] = None,
 ) -> str:
-    """Generate and apply LLM edit using function calling.
+    """Generate and apply AI edit using function calling.
 
     Args:
         original_content: Original content to modify
@@ -31,7 +31,7 @@ def llm_edit(
         system_prompt: Custom system prompt (default: use built-in prompt)
 
     Returns:
-        Modified content after applying LLM-generated edit
+        Modified content after applying AI-generated edit
 
     Raises:
         ValueError: If edit cannot be applied
@@ -39,7 +39,7 @@ def llm_edit(
     # Use default provider if none provided
     provider = llm_provider or get_default_provider()
     
-    logger.info("Starting LLM edit generation and application")
+    logger.info("Starting AI edit generation and application")
 
     prompt = user_prompt(instruction, original_content)
 
@@ -128,5 +128,5 @@ def llm_edit(
         logger.warning("No changes detected but edit was expected")
         raise ValueError("No changes were applied to the content")
 
-    logger.info(f"LLM edit completed: {len(current_content)} chars")
+    logger.info(f"AI edit completed: {len(current_content)} chars")
     return current_content

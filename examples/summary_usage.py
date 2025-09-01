@@ -1,6 +1,6 @@
 """Simple summary usage examples."""
 
-from llmtools import OpenAIProvider, llm_summary
+from vibetools import OpenAIProvider, ai_summary
 
 llm = OpenAIProvider(model="google/gemini-2.5-flash", base_url="https://openrouter.ai/api/v1")
 
@@ -18,7 +18,7 @@ def simple_example() -> None:
     print(f"Input: {documents}")
     print(f"Instruction: {instruction}")
 
-    summary = llm_summary(
+    summary = ai_summary(
         documents=documents,
         instruction=instruction,
         llm_provider=llm,
@@ -42,7 +42,7 @@ def complex_example() -> None:
     print(f"Input: {documents}")
     print(f"Instruction: {instruction}")
 
-    all_versions = llm_summary(
+    all_versions = ai_summary(
         documents=documents,
         initial_summary=initial_summary,
         instruction=instruction,

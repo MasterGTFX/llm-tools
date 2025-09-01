@@ -4,7 +4,7 @@ import pytest
 from enum import Enum
 from typing import Any, Optional, Union, Literal, List, Dict, Tuple
 
-from llmtools.interfaces.openai_llm import convert_functions_to_map
+from vibetools.interfaces.openai_llm import convert_functions_to_map
 
 
 # Test Enums

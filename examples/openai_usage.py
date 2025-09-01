@@ -13,7 +13,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from llmtools import OpenAIProvider
+from vibetools import OpenAIProvider
 
 # Global LLM provider to avoid duplication
 llm = OpenAIProvider(model="gpt-5-mini")

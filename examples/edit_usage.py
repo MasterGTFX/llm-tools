@@ -1,6 +1,6 @@
 """Simple edit usage examples."""
 
-from llmtools import OpenAIProvider, llm_edit
+from vibetools import OpenAIProvider, ai_edit
 
 llm = OpenAIProvider(model="openai/gpt-4.1-mini", base_url="https://openrouter.ai/api/v1")
 
@@ -14,7 +14,7 @@ def simple_example() -> None:
 hello()"""
     print(f"Before:\n{original}")
 
-    modified = llm_edit(
+    modified = ai_edit(
         original_content=original,
         instruction="Change the message to say 'Hi there!'",
         llm_provider=llm,
@@ -38,7 +38,7 @@ result = calc.add(5, 3)
 print(result)"""
     print(f"Before:\n{original}")
 
-    modified = llm_edit(
+    modified = ai_edit(
         original_content=original,
         instruction="Add a subtract method and use it in the example",
         llm_provider=llm,

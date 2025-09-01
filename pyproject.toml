@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "llmtools"
+name = "vibetools"
 version = "0.1.0"
 description = "A modular set of LLM utilities for personal and project use"
 readme = "README.md"
@@ -45,15 +45,15 @@ dev = [
     "pre-commit>=3.0.0",
     "types-requests",
 ]
-all = ["llmtools[anthropic,openai,dev]"]
+all = ["vibetools[anthropic,openai,dev]"]
 
 [project.urls]
-Homepage = "https://github.com/yourname/llm-tools"
-Repository = "https://github.com/yourname/llm-tools"
-Issues = "https://github.com/yourname/llm-tools/issues"
+Homepage = "https://github.com/MasterGTFX/vibe-tools"
+Repository = "https://github.com/MasterGTFX/vibe-tools"
+Issues = "https://github.com/MasterGTFX/vibe-tools/issues"
 
 [tool.setuptools.packages.find]
-include = ["llmtools*"]
+include = ["vibetools*"]
 
 [tool.ruff]
 line-length = 88
@@ -107,7 +107,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["llmtools"]
+source = ["vibetools"]
 omit = ["tests/*"]
 
 [tool.coverage.report]

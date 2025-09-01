@@ -1,6 +1,6 @@
 """Simple sorter usage examples."""
 
-from llmtools import OpenAIProvider, llm_sorter
+from vibetools import OpenAIProvider, ai_sort
 
 llm = OpenAIProvider(model="gpt-5-nano")
 smarter_llm = OpenAIProvider(model="gpt-5-mini")
@@ -16,7 +16,7 @@ def simple_example() -> None:
     print(f"Input: {movies}")
     print(f"Instruction: {instruction}")
 
-    sorted_movies = llm_sorter(
+    sorted_movies = ai_sort(
         items=movies,
         instruction=instruction,
         llm_provider=llm,
@@ -35,7 +35,7 @@ def complex_example() -> None:
     print(f"Input: {activities}")
     print(f"Instruction: {instruction}")
 
-    sorted_activities = llm_sorter(
+    sorted_activities = ai_sort(
         items=activities,
         instruction=instruction,
         llm_provider=llm,

@@ -1,4 +1,4 @@
-"""Global defaults for llmtools - simple configuration management.
+"""Global defaults for vibetools - simple configuration management.
 
 This module provides a thread-safe global configuration system similar to 
 matplotlib's rcParams, allowing users to set defaults that apply to all
@@ -13,7 +13,7 @@ from typing import Any, Dict, Iterator, Optional, Type, TypeVar
 T = TypeVar('T')
 
 # Import interfaces for type hints
-from llmtools.interfaces.llm import LLMInterface
+from vibetools.interfaces.llm import LLMInterface
 
 # Global defaults registry - thread-safe configuration storage
 _defaults_lock = threading.RLock()
@@ -155,7 +155,7 @@ def get_default_provider() -> LLMInterface:
     global _default_provider_cache
     if _default_provider_cache is None:
         # Import here to avoid circular dependencies at module level
-        from llmtools.interfaces.openai_llm import OpenAIProvider
+        from vibetools.interfaces.openai_llm import OpenAIProvider
         _default_provider_cache = get_provider(OpenAIProvider)
     return _default_provider_cache
 
@@ -167,9 +167,9 @@ def reset_default_provider() -> None:
     automatically called when global configuration changes via configure().
     
     Examples:
-        >>> llmtools.configure(model="gpt-4o")  # Auto-resets cache
+        >>> vibetools.configure(model="gpt-4o")  # Auto-resets cache
         >>> # Or manually:
-        >>> llmtools.reset_default_provider()
+        >>> vibetools.reset_default_provider()
     """
     global _default_provider_cache
     _default_provider_cache = None
@@ -186,9 +186,9 @@ def configure(**kwargs: Any) -> None:
         **kwargs: Configuration options to set globally
         
     Examples:
-        >>> import llmtools
-        >>> llmtools.configure(temperature=0.8, max_tokens=2000)
-        >>> llmtools.configure(model="gpt-4o", max_tool_iterations=15)
+        >>> import vibetools
+        >>> vibetools.configure(temperature=0.8, max_tokens=2000)
+        >>> vibetools.configure(model="gpt-4o", max_tool_iterations=15)
     """
     defaults.update(kwargs)
     reset_default_provider()  # Auto-invalidate cache when config changes
@@ -201,10 +201,10 @@ def reset_configuration() -> None:
     original default values. Also resets the cached default provider.
     
     Examples:
-        >>> import llmtools
-        >>> llmtools.configure(temperature=0.1, model="gpt-4o")
+        >>> import vibetools
+        >>> vibetools.configure(temperature=0.1, model="gpt-4o")
         >>> # Later, reset to defaults
-        >>> llmtools.reset_configuration()
+        >>> vibetools.reset_configuration()
         >>> # Now back to gpt-4o-mini with temperature=0.7
     """
     defaults.reset()
@@ -225,7 +225,7 @@ def get_provider(provider_class: Type[T], **kwargs: Any) -> T:
         Configured LLM provider instance
         
     Examples:
-        >>> from llmtools import OpenAIProvider, get_provider
+        >>> from vibetools import OpenAIProvider, get_provider
         >>> # Uses global defaults
         >>> llm = get_provider(OpenAIProvider)
         >>> 
@@ -262,10 +262,10 @@ def temp_config(**kwargs: Any) -> Iterator[None]:
         **kwargs: Configuration overrides to apply temporarily
         
     Examples:
-        >>> import llmtools
-        >>> with llmtools.temp_config(temperature=0.1, max_tokens=500):
-        ...     llm = llmtools.get_provider(llmtools.OpenAIProvider)
-        ...     result = llm_ask("precise question", llm)
+        >>> import vibetools
+        >>> with vibetools.temp_config(temperature=0.1, max_tokens=500):
+        ...     llm = vibetools.get_provider(vibetools.OpenAIProvider)
+        ...     result = ai_ask("precise question", llm)
         >>> # Global config restored after context
     """
     # Save current state

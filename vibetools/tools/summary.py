@@ -1,21 +1,21 @@
-"""LLM-powered document summarization using iterative summary updates."""
+"""AI-powered document summarization using iterative summary updates."""
 
 from typing import Optional, Union
 
-from llmtools.interfaces.llm import LLMInterface
-from llmtools.defaults import get_default_provider
-from llmtools.tools.edit import llm_edit
-from llmtools.prompts.summary_prompts import (
+from vibetools.interfaces.llm import LLMInterface
+from vibetools.defaults import get_default_provider
+from vibetools.tools.edit import ai_edit
+from vibetools.prompts.summary_prompts import (
     SYSTEM_PROMPT,
     initial_summary_prompt,
     update_instruction_template,
 )
-from llmtools.utils.logger_config import setup_logger
+from vibetools.utils.logger_config import setup_logger
 
 logger = setup_logger(__name__)
 
 
-def llm_summary(
+def ai_summary(
     documents: list[str],
     instruction: str,
     llm_provider: Optional[LLMInterface] = None,
@@ -40,7 +40,7 @@ def llm_summary(
     # Use default provider if none provided
     provider = llm_provider or get_default_provider()
     
-    logger.info(f"Starting LLM summary with {len(documents)} documents")
+    logger.info(f"Starting AI summary with {len(documents)} documents")
 
     # Handle empty documents case - return initial summary if provided
     if not documents:
@@ -61,7 +61,7 @@ def llm_summary(
                  else update_instruction_template(instruction, document))
         
         try:
-            summary = llm_edit(
+            summary = ai_edit(
                 original_content=summary,
                 instruction=prompt,
                 llm_provider=provider,
@@ -73,5 +73,5 @@ def llm_summary(
             logger.error(f"Error processing document {i+1}: {e}")
             raise ValueError(f"Failed to process document {i+1}: {e}") from e
 
-    logger.info(f"LLM summary completed: {len(summary)} characters, {len(versions)} versions")
+    logger.info(f"AI summary completed: {len(summary)} characters, {len(versions)} versions")
     return versions if return_all else summary

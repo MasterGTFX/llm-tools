@@ -11,9 +11,9 @@ from typing import Any, Callable, Iterator, Optional, cast, get_args, get_origin
 
 from dotenv import load_dotenv
 
-from llmtools.interfaces.llm import LLMInterface, T
-from llmtools.utils.logger_config import setup_logger
-from llmtools.utils.tools import (
+from vibetools.interfaces.llm import LLMInterface, T
+from vibetools.utils.logger_config import setup_logger
+from vibetools.utils.tools import (
     ToolExecutionError,
     create_function_not_found_message,
     create_tool_error_message,
@@ -28,7 +28,7 @@ try:
 except ImportError as e:
     raise ImportError(
         "OpenAI SDK is required for OpenAI provider. "
-        "Install with: pip install 'llmtools[openai]' or pip install openai"
+        "Install with: pip install 'vibetools[openai]' or pip install openai"
     ) from e
 
 

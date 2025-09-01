@@ -1,22 +1,22 @@
-"""LLM-powered filtering utilities for lists using natural language instructions."""
+"""AI-powered filtering utilities for lists using natural language instructions."""
 
 from typing import Any, Optional, Union
 
-from llmtools.interfaces.llm import LLMInterface
-from llmtools.defaults import get_default_provider
-from llmtools.prompts.filter_prompts import (
+from vibetools.interfaces.llm import LLMInterface
+from vibetools.defaults import get_default_provider
+from vibetools.prompts.filter_prompts import (
     DOUBLE_CHECK_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
     VERIFICATION_PROMPT,
     history_assistant_prompt,
     user_prompt,
 )
-from llmtools.utils.logger_config import setup_logger
+from vibetools.utils.logger_config import setup_logger
 
 logger = setup_logger(__name__)
 
 
-def llm_filter(
+def ai_filter(
     items: list[Any],
     instruction: str,
     llm_provider: Optional[LLMInterface] = None,
@@ -40,18 +40,18 @@ def llm_filter(
     # Use default provider if none provided
     provider = llm_provider or get_default_provider()
     
-    logger.info(f"Starting LLM filter with {len(items)} items")
+    logger.info(f"Starting AI filter with {len(items)} items")
 
     if not items:
         logger.info("Empty items list, returning empty list")
         return []
 
-    # Create numbered item list for LLM
+    # Create numbered item list for AI
     item_map = dict(enumerate(items))
     remaining_items = item_map.copy()
     removed_items = {}
 
-    # Format items for LLM presentation
+    # Format items for AI presentation
     def format_items(item_dict: dict[int, Any]) -> str:
         return "\n".join(f"{i}: {item}" for i, item in item_dict.items())
 
@@ -186,7 +186,7 @@ def llm_filter(
     # Return filtered results in original order
     result = [remaining_items[i] for i in sorted(remaining_items.keys())]
     logger.info(
-        f"LLM filter completed: {len(result)} items remaining from {len(items)} original"
+        f"AI filter completed: {len(result)} items remaining from {len(items)} original"
     )
 
     return result

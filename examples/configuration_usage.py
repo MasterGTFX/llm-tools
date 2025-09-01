@@ -1,7 +1,7 @@
 """Configuration system usage examples."""
 
-import llmtools
-from llmtools import OpenAIProvider, llm_ask
+import vibetools
+from vibetools import OpenAIProvider, ai_ask
 
 
 def basic_usage() -> None:
@@ -35,7 +35,7 @@ def global_configuration() -> None:
     print("=== Global Configuration ===")
     
     # Configure global defaults including base_url
-    llmtools.configure(
+    vibetools.configure(
         model="gpt-4o", 
         temperature=0.8,
         max_tool_iterations=25,
@@ -43,8 +43,8 @@ def global_configuration() -> None:
     )
     
     # New providers will use these defaults
-    llm1 = llmtools.get_provider(OpenAIProvider)
-    llm2 = llmtools.get_provider(OpenAIProvider, temperature=0.2)  # Override one setting
+    llm1 = vibetools.get_provider(OpenAIProvider)
+    llm2 = vibetools.get_provider(OpenAIProvider, temperature=0.2)  # Override one setting
     
     print(f"LLM1 - Model: {llm1.model}, Temp: {llm1.config['temperature']}, Base URL: {llm1.base_url}")
     print(f"LLM2 - Model: {llm2.model}, Temp: {llm2.config['temperature']}, Base URL: {llm2.base_url}")
@@ -55,21 +55,21 @@ def temporary_configuration() -> None:
     print("=== Temporary Configuration ===")
     
     # Set some defaults
-    llmtools.configure(temperature=0.7, model="gpt-4o-mini")
+    vibetools.configure(temperature=0.7, model="gpt-4o-mini")
     
     print("Normal config:")
-    llm1 = llmtools.get_provider(OpenAIProvider)
+    llm1 = vibetools.get_provider(OpenAIProvider)
     print(f"  Model: {llm1.model}, Temp: {llm1.config['temperature']}")
     
     # Temporarily change settings
-    with llmtools.temp_config(temperature=0.1, model="gpt-4o"):
+    with vibetools.temp_config(temperature=0.1, model="gpt-4o"):
         print("Inside temp_config:")
-        llm2 = llmtools.get_provider(OpenAIProvider)
+        llm2 = vibetools.get_provider(OpenAIProvider)
         print(f"  Model: {llm2.model}, Temp: {llm2.config['temperature']}")
     
     # Back to original settings
     print("After temp_config:")
-    llm3 = llmtools.get_provider(OpenAIProvider)
+    llm3 = vibetools.get_provider(OpenAIProvider)
     print(f"  Model: {llm3.model}, Temp: {llm3.config['temperature']}")
 
 
@@ -109,7 +109,7 @@ def realistic_example() -> None:
     
     # Set up your preferred defaults
     import os
-    llmtools.configure(
+    vibetools.configure(
         temperature=0.3,  # Conservative for factual questions
         max_tool_iterations=10,
         base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
@@ -117,18 +117,18 @@ def realistic_example() -> None:
     )
     
     # Create provider with global defaults
-    llm = llmtools.get_provider(OpenAIProvider)
+    llm = vibetools.get_provider(OpenAIProvider)
     
     # Use tools normally - they inherit provider configuration
     try:
-        answer = llm_ask("Is Python a programming language?", llm)
+        answer = ai_ask("Is Python a programming language?", llm)
         print(f"Answer: {answer}")
     except Exception as e:
         print(f"Error (likely missing API key): {e}")
 
 
 if __name__ == "__main__":
-    print("LLMTools Configuration Examples")
+    print("VibeTools Configuration Examples")
     print("=" * 40)
     
     basic_usage()

@@ -1,6 +1,6 @@
 """Simple filter usage examples."""
 
-from llmtools import OpenAIProvider, llm_filter
+from vibetools import OpenAIProvider, ai_filter
 
 llm = OpenAIProvider(model="gpt-5-mini")
 
@@ -15,7 +15,7 @@ def simple_example() -> None:
     print(f"Input: {languages}")
     print(f"Instruction: {instruction}")
 
-    filtered = llm_filter(
+    filtered = ai_filter(
         items=languages,
         instruction=instruction,
         llm_provider=llm,
@@ -34,7 +34,7 @@ def complex_example() -> None:
     print(f"Input: {foods}")
     print(f"Instruction: {instruction}")
 
-    filtered = llm_filter(
+    filtered = ai_filter(
         items=foods,
         instruction=instruction,
         llm_provider=llm,

@@ -1,7 +1,7 @@
 """Shared utilities for chunking, embeddings, logging, etc."""
 
-from llmtools.utils.logger_config import get_component_logger, setup_logger
-from llmtools.utils.tools import (
+from vibetools.utils.logger_config import get_component_logger, setup_logger
+from vibetools.utils.tools import (
     ToolExecutionError,
     ToolTimeoutError,
     create_function_not_found_message,

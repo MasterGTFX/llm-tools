@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Book List Manager - Chaining sort, filter, and edit operations."""
 
-from llmtools import OpenAIProvider, llm_sorter, llm_filter, llm_edit
+from vibetools import OpenAIProvider, ai_sort, ai_filter, ai_edit
 
 llm = OpenAIProvider(model="google/gemini-2.5-flash", base_url="https://openrouter.ai/api/v1")
 
@@ -32,7 +32,7 @@ def book_list_manager_example() -> None:
     
     # Step 1: Sort by popularity
     print("\nStep 1: Sorting by popularity...")
-    sorted_books = llm_sorter(
+    sorted_books = ai_sort(
         items=books,
         instruction="Sort this list of books by popularity, most popular first",
         llm_provider=llm,
@@ -44,7 +44,7 @@ def book_list_manager_example() -> None:
     
     # Step 2: Filter to only science fiction books
     print("\nStep 2: Filtering for science fiction books...")
-    sci_fi_books = llm_filter(
+    sci_fi_books = ai_filter(
         items=sorted_books,
         instruction="Keep only science fiction books",
         llm_provider=llm,
@@ -60,7 +60,7 @@ def book_list_manager_example() -> None:
     # Convert list to formatted string for editing
     books_text = "\n".join([f"{i+1}. {book}" for i, book in enumerate(sci_fi_books)])
     
-    edited_books = llm_edit(
+    edited_books = ai_edit(
         original_content=books_text,
         instruction="Rewrite each book entry to be in proper title case and add a short one-sentence description of the book after each title. Keep the author format.",
         llm_provider=llm,
@@ -95,9 +95,9 @@ def shopping_list_helper() -> None:
         print(f"  - {item}")
     
     # Chain operations: sort by healthiness, filter fruits/vegetables, format with emojis
-    formatted_list = llm_edit(
-        original_content="\n".join(llm_filter(
-            items=llm_sorter(
+    formatted_list = ai_edit(
+        original_content="\n".join(ai_filter(
+            items=ai_sort(
                 items=items,
                 instruction="Sort the items by sugar content, lowest first",
                 llm_provider=llm,
