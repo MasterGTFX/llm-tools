@@ -1,7 +1,7 @@
 # llm-tools
 
 A collection of **simple, self-contained LLM functions** for personal and project use.
-Just import a function and use it - no classes, no configuration, no heavy dependencies.
+Just import a function and use it - minimal setup, optional configuration, no heavy dependencies.
 
 Each function is designed to solve a specific problem with a single line of code, using OpenAI by default.
 
@@ -100,6 +100,27 @@ print(improved)  # "This is a draft document that contains some errors."
 
 ---
 
+## Configuration (Optional)
+
+Works out of the box, configure only when needed:
+
+```python
+import llmtools
+
+# Global defaults
+llmtools.configure(model="gpt-4o", temperature=0.3)
+
+# Environment variables
+export OPENAI_API_KEY="your-key" 
+export OPENAI_DEFAULT_MODEL="gpt-4o"
+
+# Advanced usage
+llm = llmtools.get_provider(llmtools.OpenAIProvider, model="gpt-4o")
+answer = llm_ask("Question?", llm_provider=llm)
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -127,7 +148,7 @@ llm-tools/
 ## Philosophy
 
 * **Simplicity first** → single function calls solve specific problems
-* **No configuration** → works out of the box with OpenAI
+* **Minimal setup** → works out of the box with OpenAI, optional configuration
 * **Self-contained functions** → no classes or complex setup required
 * **Immediate productivity** → import and use in one line
 * **Leverage structured output** → use LLM function calling and JSON schema internally

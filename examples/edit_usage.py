@@ -2,7 +2,7 @@
 
 from llmtools import OpenAIProvider, llm_edit
 
-llm = OpenAIProvider(model="z-ai/glm-4.5-air", base_url="https://openrouter.ai/api/v1")
+llm = OpenAIProvider(model="openai/gpt-4.1-mini", base_url="https://openrouter.ai/api/v1")
 
 
 def simple_example() -> None:
@@ -12,7 +12,7 @@ def simple_example() -> None:
     print("Hello")
 
 hello()"""
-    print("Original:\n", original)
+    print(f"Before:\n{original}")
 
     modified = llm_edit(
         original_content=original,
@@ -20,7 +20,7 @@ hello()"""
         llm_provider=llm,
     )
 
-    print("Modified:\n", modified)
+    print(f"After:\n{modified}")
 
 
 def complex_example() -> None:
@@ -36,14 +36,14 @@ def complex_example() -> None:
 calc = Calculator()
 result = calc.add(5, 3)
 print(result)"""
-    print("Original:\n", original)
+    print(f"Before:\n{original}")
 
     modified = llm_edit(
         original_content=original,
         instruction="Add a subtract method and use it in the example",
         llm_provider=llm,
     )
-    print("Modified:\n", modified)
+    print(f"After:\n{modified}")
 
 
 if __name__ == "__main__":

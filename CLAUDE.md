@@ -140,3 +140,4 @@ See `examples/` directory for simple function usage examples demonstrating each 
 - Create simple unit tests for each function
 - Test with real OpenAI calls (no mocking)
 - Use local `/venv` for development
+- Make sure the examples are easy to read&understand, clear, concise and demonstrates the functionality very well. Include simple/advanced example(s)

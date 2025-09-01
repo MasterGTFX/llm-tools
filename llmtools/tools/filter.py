@@ -1,8 +1,9 @@
 """LLM-powered filtering utilities for lists using natural language instructions."""
 
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from llmtools.interfaces.llm import LLMInterface
+from llmtools.defaults import get_default_provider
 from llmtools.prompts.filter_prompts import (
     DOUBLE_CHECK_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
@@ -18,7 +19,7 @@ logger = setup_logger(__name__)
 def llm_filter(
     items: list[Any],
     instruction: str,
-    llm_provider: LLMInterface,
+    llm_provider: Optional[LLMInterface] = None,
     double_check: Union[bool, LLMInterface, None] = False,
 ) -> list[Any]:
     """Filter a list of items using natural language instructions.
@@ -26,7 +27,7 @@ def llm_filter(
     Args:
         items: List of items to filter
         instruction: Natural language instruction for filtering
-        llm_provider: LLM interface for generating filtering decisions
+        llm_provider: LLM interface for generating filtering decisions (uses global default if None)
         double_check: Verification mode - False: no verification, True: use primary provider,
                      LLMInterface: use specified provider for verification (default: False)
 
@@ -36,6 +37,9 @@ def llm_filter(
     Raises:
         ValueError: If filtering cannot be completed
     """
+    # Use default provider if none provided
+    provider = llm_provider or get_default_provider()
+    
     logger.info(f"Starting LLM filter with {len(items)} items")
 
     if not items:
@@ -124,7 +128,7 @@ def llm_filter(
     # Use system prompt from prompts module
 
     try:
-        llm_provider.generate_with_tools(
+        provider.generate_with_tools(
             prompt=prompt,
             functions=[remove_items, restore_items],
             system_prompt=SYSTEM_PROMPT,

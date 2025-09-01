@@ -1,29 +1,33 @@
 """Simple ask usage examples."""
 
-from llmtools import OpenAIProvider, llm_ask
+import llmtools
+from llmtools import llm_ask
 
-llm = OpenAIProvider(model="gpt-4o-mini")
+# Global configuration
+llmtools.configure(model="gpt-4o-mini", temperature=0.7)
+llm = llmtools.get_provider(llmtools.OpenAIProvider)
 
 
 def simple_example() -> None:
     print("=== Simple Example: Basic yes/no question ===")
-    
+
     question = "Is 5 greater than 3?"
-    print(f"Question: {question}")
+    print(f"Q: {question}")
+
     answer = llm_ask(question, llm)
-    print(f"Answer: {answer}")
+    print(f"A: {answer}")
 
 
 def complex_example() -> None:
     print("=== Complex Example: Decision with context and reasoning ===")
-    
+
     question = "Should we deploy this feature?"
     context = "System load: 85%, Tests: passing, Team available for monitoring"
-    print(f"Question: {question}")
+    print(f"Q: {question}")
     print(f"Context: {context}")
-    
+
     answer, reasoning = llm_ask(question, llm, context=context, reasoning=True)
-    print(f"Answer: {answer}")
+    print(f"A: {answer}")
     print(f"Reasoning: {reasoning}")
 
 

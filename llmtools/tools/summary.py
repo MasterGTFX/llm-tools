@@ -3,6 +3,7 @@
 from typing import Optional, Union
 
 from llmtools.interfaces.llm import LLMInterface
+from llmtools.defaults import get_default_provider
 from llmtools.tools.edit import llm_edit
 from llmtools.prompts.summary_prompts import (
     SYSTEM_PROMPT,
@@ -17,7 +18,7 @@ logger = setup_logger(__name__)
 def llm_summary(
     documents: list[str],
     instruction: str,
-    llm_provider: LLMInterface,
+    llm_provider: Optional[LLMInterface] = None,
     initial_summary: Optional[str] = None,
     return_all: bool = False,
 ) -> Union[str, list[str]]:
@@ -26,7 +27,7 @@ def llm_summary(
     Args:
         documents: List of document strings to summarize
         instruction: Natural language instruction for summarization approach
-        llm_provider: LLM interface for generating summary updates
+        llm_provider: LLM interface for generating summary updates (uses global default if None)
         initial_summary: Optional starting summary (if None, starts empty)
         return_all: If True, returns list of all summary versions, else final summary
 
@@ -36,6 +37,9 @@ def llm_summary(
     Raises:
         ValueError: If summarization cannot be completed
     """
+    # Use default provider if none provided
+    provider = llm_provider or get_default_provider()
+    
     logger.info(f"Starting LLM summary with {len(documents)} documents")
 
     # Handle empty documents case - return initial summary if provided
@@ -60,7 +64,7 @@ def llm_summary(
             summary = llm_edit(
                 original_content=summary,
                 instruction=prompt,
-                llm_provider=llm_provider,
+                llm_provider=provider,
                 system_prompt=SYSTEM_PROMPT,
             )
             versions.append(summary)

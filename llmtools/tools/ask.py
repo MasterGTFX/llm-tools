@@ -1,8 +1,9 @@
 """LLM-powered yes/no question answering using natural language instructions."""
 
-from typing import Union
+from typing import Optional, Union
 
 from llmtools.interfaces.llm import LLMInterface
+from llmtools.defaults import get_default_provider
 from llmtools.prompts.ask_prompts import (
     SYSTEM_PROMPT,
     SYSTEM_PROMPT_WITH_REASONING,
@@ -15,7 +16,7 @@ logger = setup_logger(__name__)
 
 def llm_ask(
     question: str,
-    llm_provider: LLMInterface,
+    llm_provider: Optional[LLMInterface] = None,
     context: str = "",
     reasoning: bool = False,
 ) -> Union[bool, tuple[bool, str]]:
@@ -23,7 +24,7 @@ def llm_ask(
 
     Args:
         question: The yes/no question to ask
-        llm_provider: LLM interface for generating the answer
+        llm_provider: LLM interface for generating the answer (uses global default if None)
         context: Optional context information to inform the decision
         reasoning: Whether to return reasoning along with the answer (default: False)
 
@@ -33,6 +34,9 @@ def llm_ask(
     Raises:
         ValueError: If the LLM cannot provide a clear yes/no answer
     """
+    # Use default provider if none provided
+    provider = llm_provider or get_default_provider()
+    
     logger.info(f"Starting LLM ask: {question[:50]}...")
 
     prompt = user_prompt(question, context)
@@ -61,7 +65,7 @@ def llm_ask(
     system_prompt = SYSTEM_PROMPT_WITH_REASONING if reasoning else SYSTEM_PROMPT
 
     try:
-        response = llm_provider.generate_with_tools(
+        response = provider.generate_with_tools(
             prompt=prompt,
             functions=[answer_question],
             system_prompt=system_prompt,

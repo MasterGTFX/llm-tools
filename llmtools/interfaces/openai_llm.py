@@ -5,8 +5,9 @@ import json
 import logging
 import os
 import re
+from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Callable, Optional, cast, get_args, get_origin
+from typing import Any, Callable, Iterator, Optional, cast, get_args, get_origin
 
 from dotenv import load_dotenv
 
@@ -329,6 +330,15 @@ class OpenAIProvider(LLMInterface):
         api_key: Optional[str] = None,
         model: Optional[str] = None,
         base_url: Optional[str] = None,
+        temperature: float = 1,
+        max_tokens: Optional[int] = None,
+        timeout: int = 60,
+        max_tool_iterations: int = 20,
+        tool_timeout: Optional[float] = None,
+        handle_tool_errors: bool = True,
+        tool_choice: str = "required",
+        reasoning_effort: Optional[str] = None,
+        reasoning_summary: Optional[str] = None,
         **client_kwargs: Any,
     ):
         """Initialize OpenAI provider.
@@ -336,16 +346,23 @@ class OpenAIProvider(LLMInterface):
         Args:
             api_key: OpenAI API key. If not provided, will try to load from
                     OPENAI_API_KEY environment variable
-            model: Model to use. If not provided, will try to load from
-                   OPENAI_DEFAULT_MODEL environment variable
-            base_url: Custom base URL (e.g., for OpenRouter). If not provided,
-                     will try to load from OPENAI_BASE_URL environment variable,
-                     otherwise uses OpenAI's default endpoint
+            model: Model to use (default: gpt-4o-mini)
+            base_url: Custom base URL (e.g., for OpenRouter)
+            temperature: Sampling temperature (0.0 to 2.0)
+            max_tokens: Maximum tokens to generate
+            timeout: Request timeout in seconds
+            max_tool_iterations: Maximum number of tool calling rounds
+            tool_timeout: Timeout for individual tool execution
+            handle_tool_errors: Whether to handle tool execution errors gracefully
+            tool_choice: Tool choice strategy ('required', 'auto', etc.)
+            reasoning_effort: Effort level for reasoning models (minimal, low, medium, high)
+            reasoning_summary: Reasoning summary level (auto, concise, detailed)
             **client_kwargs: Additional arguments to pass to OpenAI client
         """
         # Load environment variables from .env file
         load_dotenv()
 
+        # Handle API credentials with environment variable fallback
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError(
@@ -353,15 +370,23 @@ class OpenAIProvider(LLMInterface):
                 "variable or pass api_key parameter"
             )
 
-        self.model = model or os.getenv("OPENAI_DEFAULT_MODEL")
-        if not self.model:
-            raise ValueError(
-                "Model is required. Set OPENAI_DEFAULT_MODEL environment "
-                "variable or pass model parameter"
-            )
+        self.model = model or os.getenv("OPENAI_DEFAULT_MODEL", "gpt-4o-mini")
         self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
 
-        # Initialize OpenAI client with optional custom base URL
+        # Store configuration
+        self.config: dict[str, Any] = {
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "timeout": timeout,
+            "max_tool_iterations": max_tool_iterations,
+            "tool_timeout": tool_timeout,
+            "handle_tool_errors": handle_tool_errors,
+            "tool_choice": tool_choice,
+            "reasoning_effort": reasoning_effort,
+            "reasoning_summary": reasoning_summary,
+        }
+
+        # Initialize OpenAI client (only pass valid OpenAI client parameters)
         client_params = {
             "api_key": self.api_key,
             **client_kwargs,
@@ -370,13 +395,6 @@ class OpenAIProvider(LLMInterface):
             client_params["base_url"] = self.base_url
 
         self.client = OpenAI(**client_params)
-
-        # Default configuration
-        self.config: dict[str, Any] = {
-            # "temperature":0.7,
-            # "max_tokens": 4096,
-            # "timeout":30,
-        }
 
         # Set up logging
         self.logger = setup_logger(__name__)
@@ -443,13 +461,29 @@ class OpenAIProvider(LLMInterface):
 
         messages = self._build_messages(prompt, system_prompt, history)
 
-        # Merge config with kwargs
+        # Build request parameters with proper precedence
         request_params = {
             "model": self.model,
             "messages": messages,
-            **self.config,
-            **kwargs,
         }
+        
+        # Add configuration parameters (skip client-specific and non-API params)
+        config_params = {k: v for k, v in self.config.items() 
+                        if k in ["temperature", "max_tokens", "timeout"] and v is not None}
+        request_params.update(config_params)
+        
+        # Add reasoning parameters for supported models
+        if self.config.get("reasoning_effort") or self.config.get("reasoning_summary"):
+            reasoning = {}
+            if self.config.get("reasoning_effort"):
+                reasoning["effort"] = self.config["reasoning_effort"]
+            if self.config.get("reasoning_summary"):
+                reasoning["summary"] = self.config["reasoning_summary"]
+            if reasoning:
+                request_params["reasoning"] = reasoning
+        
+        # Method-level overrides have highest precedence
+        request_params.update(kwargs)
         self.logger.debug(
             f"Request params: {
                 {k: v for k, v in request_params.items() if k != 'messages'}
@@ -504,14 +538,30 @@ class OpenAIProvider(LLMInterface):
             },
         }
 
-        # Merge config with kwargs
+        # Build request parameters with proper precedence
         request_params = {
             "model": self.model,
             "messages": messages,
             "response_format": response_format,
-            **self.config,
-            **kwargs,
         }
+        
+        # Add configuration parameters (skip client-specific and non-API params)
+        config_params = {k: v for k, v in self.config.items() 
+                        if k in ["temperature", "max_tokens", "timeout"] and v is not None}
+        request_params.update(config_params)
+        
+        # Add reasoning parameters for supported models
+        if self.config.get("reasoning_effort") or self.config.get("reasoning_summary"):
+            reasoning = {}
+            if self.config.get("reasoning_effort"):
+                reasoning["effort"] = self.config["reasoning_effort"]
+            if self.config.get("reasoning_summary"):
+                reasoning["summary"] = self.config["reasoning_summary"]
+            if reasoning:
+                request_params["reasoning"] = reasoning
+        
+        # Method-level overrides have highest precedence
+        request_params.update(kwargs)
 
         try:
             self.logger.info(f"Generating structured response with model: {self.model}")
@@ -571,14 +621,30 @@ class OpenAIProvider(LLMInterface):
 
         messages = self._build_messages(prompt, system_prompt, history)
 
-        # Merge config with kwargs
+        # Build request parameters with proper precedence
         request_params = {
             "model": self.model,
             "messages": messages,
             "response_format": model_class,
-            **self.config,
-            **kwargs,
         }
+        
+        # Add configuration parameters (skip client-specific and non-API params)
+        config_params = {k: v for k, v in self.config.items() 
+                        if k in ["temperature", "max_tokens", "timeout"] and v is not None}
+        request_params.update(config_params)
+        
+        # Add reasoning parameters for supported models
+        if self.config.get("reasoning_effort") or self.config.get("reasoning_summary"):
+            reasoning = {}
+            if self.config.get("reasoning_effort"):
+                reasoning["effort"] = self.config["reasoning_effort"]
+            if self.config.get("reasoning_summary"):
+                reasoning["summary"] = self.config["reasoning_summary"]
+            if reasoning:
+                request_params["reasoning"] = reasoning
+        
+        # Method-level overrides have highest precedence
+        request_params.update(kwargs)
         self.logger.debug(
             f"Request params: {
                 {k: v for k, v in request_params.items() if k != 'messages'}
@@ -619,10 +685,10 @@ class OpenAIProvider(LLMInterface):
         function_map: Optional[dict[Callable[..., Any], dict[str, Any]]] = None,
         system_prompt: Optional[str] = None,
         history: Optional[list[dict[str, str]]] = None,
-        max_tool_iterations: int = 10,
-        handle_tool_errors: bool = True,
+        max_tool_iterations: Optional[int] = None,
+        handle_tool_errors: Optional[bool] = None,
         tool_timeout: Optional[float] = None,
-        tool_choice: str = "required",
+        tool_choice: Optional[str] = None,
         **kwargs: Any,
     ) -> str:
         """Generate response with access to function/tool calling. Either functions or function_map (or both) must be provided.
@@ -634,15 +700,21 @@ class OpenAIProvider(LLMInterface):
             function_map: Optional dict mapping Python functions to their schema definitions.
             system_prompt: Optional system prompt to guide behavior
             history: Optional conversation history as list of {"role": str, "content": str}
-            max_tool_iterations: Maximum number of tool calling rounds to prevent infinite loops
-            handle_tool_errors: Whether to handle tool execution errors gracefully by informing the LLM
-            tool_timeout: Optional timeout in seconds for individual tool execution
-            tool_choice: Tool choice strategy - "required" forces tool use, "auto" allows model to decide
+            max_tool_iterations: Maximum number of tool calling rounds (uses provider config if None)
+            handle_tool_errors: Whether to handle tool execution errors gracefully (uses provider config if None)
+            tool_timeout: Timeout in seconds for individual tool execution (uses provider config if None)
+            tool_choice: Tool choice strategy (uses provider config if None)
             **kwargs: Additional provider-specific parameters
 
         Returns:
             Final text response after all tool calls are completed
         """
+        # Use provider configuration as defaults when parameters are None
+        max_tool_iterations = max_tool_iterations if max_tool_iterations is not None else self.config.get("max_tool_iterations", 20)
+        handle_tool_errors = handle_tool_errors if handle_tool_errors is not None else self.config.get("handle_tool_errors", True)
+        tool_timeout = tool_timeout if tool_timeout is not None else self.config.get("tool_timeout")
+        tool_choice = tool_choice if tool_choice is not None else self.config.get("tool_choice", "required")
+        
         # Validate that at least one tool source is provided
         if not functions and not function_map:
             raise ValueError("Either 'functions' or 'function_map' must be provided")
@@ -794,13 +866,29 @@ class OpenAIProvider(LLMInterface):
         self.logger.debug(f"Max iterations: {max_tool_iterations}")
         self.logger.debug(f"Available functions: {list(tool_functions.keys())}")
 
-        # Merge config with kwargs (tool_choice will be set dynamically in the loop)
+        # Build request parameters (tool_choice will be set dynamically in the loop)
         request_params = {
             "model": self.model,
             "tools": tools,
-            **self.config,
-            **kwargs,
         }
+        
+        # Add configuration parameters (skip tool-specific and non-API params)
+        config_params = {k: v for k, v in self.config.items() 
+                        if k in ["temperature", "max_tokens", "timeout"] and v is not None}
+        request_params.update(config_params)
+        
+        # Add reasoning parameters for supported models
+        if self.config.get("reasoning_effort") or self.config.get("reasoning_summary"):
+            reasoning = {}
+            if self.config.get("reasoning_effort"):
+                reasoning["effort"] = self.config["reasoning_effort"]
+            if self.config.get("reasoning_summary"):
+                reasoning["summary"] = self.config["reasoning_summary"]
+            if reasoning:
+                request_params["reasoning"] = reasoning
+        
+        # Method-level overrides
+        request_params.update(kwargs)
 
         while iteration < max_tool_iterations:
             iteration += 1
@@ -961,44 +1049,83 @@ class OpenAIProvider(LLMInterface):
             f"The conversation may be stuck in a loop."
         )
 
-    def configure(self, config: dict[str, Any]) -> None:
-        """Configure the LLM provider with settings.
+    def configure(self, **kwargs: Any) -> None:
+        """Update provider configuration.
 
         Args:
-            config: Configuration dictionary (API keys, model params, etc.)
+            **kwargs: Configuration options to update
         """
-        self.logger.info("Updating configuration")
+        self.logger.info("Updating provider configuration")
         config_changes = []
 
-        if "api_key" in config:
-            self.api_key = config["api_key"]
-            # Recreate client with new API key
+        # Handle critical settings that affect client
+        if "api_key" in kwargs:
+            old_key = self.api_key
+            self.api_key = kwargs["api_key"]
             self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
             config_changes.append("api_key")
 
-        if "model" in config:
+        if "model" in kwargs:
             old_model = self.model
-            self.model = config["model"]
+            self.model = kwargs["model"]
             config_changes.append(f"model: {old_model} -> {self.model}")
 
-        if "base_url" in config:
+        if "base_url" in kwargs:
             old_url = self.base_url
-            self.base_url = config["base_url"]
-            # Recreate client with new base URL
+            self.base_url = kwargs["base_url"]
             self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
             config_changes.append(f"base_url: {old_url} -> {self.base_url}")
 
-        # Update other config parameters
-        for key, value in config.items():
-            if key in ["temperature", "max_tokens", "timeout"]:
+        # Update all config parameters
+        for key, value in kwargs.items():
+            if key in self.config:
                 old_value = self.config.get(key)
                 self.config[key] = value
-                config_changes.append(f"{key}: {old_value} -> {value}")
+                if key not in ["api_key", "model", "base_url"]:  # Already logged above
+                    config_changes.append(f"{key}: {old_value} -> {value}")
+            else:
+                # Add new configuration options
+                self.config[key] = value
+                config_changes.append(f"{key}: added -> {value}")
 
         if config_changes:
             self.logger.info(f"Configuration updated: {', '.join(config_changes)}")
         else:
             self.logger.debug("No configuration changes applied")
+
+    @contextmanager
+    def temp_config(self, **kwargs: Any) -> Iterator[None]:
+        """Temporarily override configuration settings.
+        
+        This context manager allows temporary changes to provider configuration
+        that are automatically restored when exiting the context.
+        
+        Args:
+            **kwargs: Configuration overrides to apply temporarily
+            
+        Examples:
+            >>> with provider.temp_config(temperature=0.1, max_tokens=100):
+            ...     result = provider.generate("Precise question")
+            >>> # Configuration restored after context
+        """
+        # Save current state
+        old_config = self.config.copy()
+        old_model = self.model
+        old_api_key = self.api_key
+        old_base_url = self.base_url
+        old_client = self.client
+        
+        try:
+            # Apply temporary configuration
+            self.configure(**kwargs)
+            yield
+        finally:
+            # Restore original state
+            self.config = old_config
+            self.model = old_model
+            self.api_key = old_api_key
+            self.base_url = old_base_url
+            self.client = old_client
 
     def get_model_info(self) -> dict[str, Any]:
         """Get information about the current model.

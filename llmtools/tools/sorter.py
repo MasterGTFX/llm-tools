@@ -1,8 +1,9 @@
 """LLM-powered sorting utilities for lists using natural language instructions."""
 
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from llmtools.interfaces.llm import LLMInterface
+from llmtools.defaults import get_default_provider
 from llmtools.prompts.sorter_prompts import (
     DOUBLE_CHECK_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
@@ -18,7 +19,7 @@ logger = setup_logger(__name__)
 def llm_sorter(
     items: list[Any],
     instruction: str,
-    llm_provider: LLMInterface,
+    llm_provider: Optional[LLMInterface] = None,
     double_check: Union[bool, LLMInterface, None] = False,
 ) -> list[Any]:
     """Sort a list of items using natural language instructions.
@@ -26,7 +27,7 @@ def llm_sorter(
     Args:
         items: List of items to sort
         instruction: Natural language instruction for sorting
-        llm_provider: LLM interface for generating sorting decisions
+        llm_provider: LLM interface for generating sorting decisions (uses global default if None)
         double_check: Verification mode - False: no verification, True: use primary provider,
                      LLMInterface: use specified provider for verification (default: False)
 
@@ -36,6 +37,9 @@ def llm_sorter(
     Raises:
         ValueError: If sorting cannot be completed
     """
+    # Use default provider if none provided
+    provider = llm_provider or get_default_provider()
+    
     logger.info(f"Starting LLM sorter with {len(items)} items")
 
     if not items:
@@ -219,7 +223,7 @@ def llm_sorter(
 
     # Use system prompt from prompts module
     try:
-        llm_provider.generate_with_tools(
+        provider.generate_with_tools(
             prompt=prompt,
             functions=[move_items_to, move_items_by, show_modified_order, set_complete_order],
             system_prompt=SYSTEM_PROMPT,

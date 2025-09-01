@@ -3,6 +3,7 @@
 from typing import Optional
 
 from llmtools.interfaces.llm import LLMInterface
+from llmtools.defaults import get_default_provider
 from llmtools.prompts.edit_prompts import (
     SYSTEM_PROMPT,
     user_prompt,
@@ -16,7 +17,7 @@ logger = setup_logger(__name__)
 def llm_edit(
     original_content: str,
     instruction: str,
-    llm_provider: LLMInterface,
+    llm_provider: Optional[LLMInterface] = None,
     expect_edit: bool = False,
     system_prompt: Optional[str] = None,
 ) -> str:
@@ -25,7 +26,7 @@ def llm_edit(
     Args:
         original_content: Original content to modify
         instruction: Instruction for what changes to make
-        llm_provider: LLM interface for generating edits
+        llm_provider: LLM interface for generating edits (uses global default if None)
         expect_edit: Whether to expect content changes (default: False)
         system_prompt: Custom system prompt (default: use built-in prompt)
 
@@ -35,6 +36,9 @@ def llm_edit(
     Raises:
         ValueError: If edit cannot be applied
     """
+    # Use default provider if none provided
+    provider = llm_provider or get_default_provider()
+    
     logger.info("Starting LLM edit generation and application")
 
     prompt = user_prompt(instruction, original_content)
@@ -114,7 +118,7 @@ def llm_edit(
     else:
         final_system_prompt = custom_system_prompt(system_prompt)
 
-    llm_provider.generate_with_tools(
+    provider.generate_with_tools(
         prompt=prompt,
         functions=[edit_content_tool, create_content_tool],
         system_prompt=final_system_prompt,
